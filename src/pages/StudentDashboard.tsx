@@ -265,11 +265,33 @@ export default function StudentDashboard() {
              </div>
              <div>
                 <p className="text-on-surface font-headline font-black text-lg">Nenhuma aula agendada</p>
-                <p className="text-on-surface-variant text-sm font-medium px-8 leading-tight">Você ainda não tem check-in para os próximos dias.</p>
+                <p className="text-on-surface-variant text-sm font-medium px-8 leading-tight">Agende seu futevôlei ou alugue uma quadra abaixo!</p>
              </div>
              <Link to="/book-class" className="inline-block px-6 py-3 bg-secondary text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-md">Agendar Agora</Link>
           </section>
         )}
+        
+        {/* Leisure Services Section */}
+        <section className="grid grid-cols-2 gap-4">
+           <Link to="/court-booking" className="bg-white p-6 rounded-[32px] shadow-sm border border-primary-container/10 flex flex-col items-center gap-3 active:scale-95 transition-all text-center group">
+              <div className="w-14 h-14 bg-secondary/10 text-secondary rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                <span className="material-symbols-outlined text-3xl">stadium</span>
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-secondary-container uppercase tracking-widest">Aluguel</p>
+                <h4 className="font-headline font-black text-on-surface">Quadra</h4>
+              </div>
+           </Link>
+           <Link to="/day-use" className="bg-white p-6 rounded-[32px] shadow-sm border border-primary-container/10 flex flex-col items-center gap-3 active:scale-95 transition-all text-center group">
+              <div className="w-14 h-14 bg-primary/10 text-primary rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                <span className="material-symbols-outlined text-3xl">wb_sunny</span>
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-primary-container uppercase tracking-widest">Reserva</p>
+                <h4 className="font-headline font-black text-on-surface">Day Use</h4>
+              </div>
+           </Link>
+        </section>
 
         {/* Calendar Section */}
         <section className="space-y-4">

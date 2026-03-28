@@ -11,8 +11,9 @@ export default function AdminDashboard() {
     { title: 'Gestão de Professores', icon: 'badge', path: '/manage-teachers', color: 'bg-primary' },
     { title: 'Gestão de Planos', icon: 'payments', path: '/manage-plans', color: 'bg-secondary' },
     { title: 'Aprovações Pendentes', icon: 'how_to_reg', path: '/admin/approvals', color: 'bg-primary-container' },
+    { title: 'Gestão de Lazer', icon: 'stadium', path: '/admin/leisure', color: 'bg-secondary' },
     { title: 'Gestão de Eventos', icon: 'event', path: '/admin', color: 'bg-tertiary' },
-    { title: 'Relatórios Geais', icon: 'analytics', path: '/admin', color: 'bg-on-surface-variant/20' },
+    { title: 'Relatórios Gerais', icon: 'analytics', path: '/admin', color: 'bg-on-surface-variant/20' },
   ];
 
   async function handleLogout() {

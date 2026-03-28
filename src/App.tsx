@@ -15,6 +15,9 @@ import ClassManagement from './pages/ClassManagement';
 import ClassSelection from './pages/ClassSelection';
 import StudentHistory from './pages/StudentHistory';
 import ManageApprovals from './pages/ManageApprovals';
+import CourtBooking from './pages/CourtBooking';
+import DayUse from './pages/DayUse';
+import ManageLeisure from './pages/ManageLeisure';
 
 export default function App() {
   return (
@@ -34,6 +37,9 @@ export default function App() {
         <Route path="/book-class" element={<ClassSelection />} />
         <Route path="/student/history" element={<StudentHistory />} />
         <Route path="/admin/approvals" element={<ManageApprovals />} />
+        <Route path="/court-booking" element={<CourtBooking />} />
+        <Route path="/day-use" element={<DayUse />} />
+        <Route path="/admin/leisure" element={<ManageLeisure />} />
       </Routes>
     </Router>
   );
