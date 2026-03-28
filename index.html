@@ -8,6 +8,20 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <script>
+      console.log('%c[SKEMA DIAGNÓSTICO] Página carregada, iniciando verificações...', 'color: cyan; font-weight: bold;');
+      
+      // Monitorar falhas de rede de scripts
+      window.addEventListener('error', function(e) {
+        if (e.target.tagName === 'SCRIPT') {
+          console.error('[SKEMA ERROR] Falha ao carregar script:', e.target.src);
+          const feedback = document.createElement('div');
+          feedback.style = 'position:fixed; top:0; left:0; right:0; background:rgba(255,0,0,0.9); color:white; padding:10px; z-index:9999; text-align:center;';
+          feedback.innerHTML = '<b>Atenção:</b> Falha na conexão com o servidor. Verifique seu Hotspot/Internet.';
+          document.body.appendChild(feedback);
+        }
+      }, true);
+    </script>
   </head>
   <body>
     <div id="root"></div>
