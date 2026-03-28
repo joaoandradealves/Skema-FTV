@@ -1,0 +1,30 @@
+// Supabase Edge Function Model (reserva-confirmada/index.ts)
+// Este código deve ser implantado no Supabase para enviar e-mails via Resend ou similar.
+
+/*
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+
+serve(async (req) => {
+  const { record } = await req.json()
+  
+  // Aqui você buscaria os dados do aluno e da aula para montar o e-mail
+  // E enviaria usando a API do Resend (resend.com)
+  
+  return new Response(JSON.stringify({ message: "Email logic ready" }), {
+    headers: { "Content-Type": "application/json" },
+  })
+})
+*/
+
+-- SQL para disparar a função quando uma reserva for criada
+/*
+create trigger on_booking_created
+  after insert on public.bookings
+  for each row execute function supabase_functions.http_request(
+    'https://[SEU-PROJETO].supabase.co/functions/v1/reserva-confirmada',
+    'POST',
+    '{"Content-Type":"application/json"}',
+    '{}',
+    '1000'
+  );
+*/
