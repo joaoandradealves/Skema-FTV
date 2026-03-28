@@ -92,7 +92,7 @@ export default function ClassSelection() {
       }
 
       const limit = profile.plan?.classes_per_week || 0;
-      if (weeklyBookingsCount >= limit) {
+      if (limit < 99 && weeklyBookingsCount >= limit) {
           alert(`Você já atingiu seu limite de ${limit} aulas nesta semana!`);
           return;
       }

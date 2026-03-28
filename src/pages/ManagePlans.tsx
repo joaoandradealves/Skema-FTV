@@ -154,12 +154,22 @@ export default function ManagePlans() {
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1.5 ml-1">Aulas/Sem</label>
-                        <input
-                          value={plan.classes_per_week}
-                          onChange={e => setPlans(prev => prev.map(p => p.id === plan.id ? { ...p, classes_per_week: Number(e.target.value) } : p))}
-                          type="number"
-                          className="w-full h-12 px-4 rounded-xl bg-surface-container-highest border-none focus:ring-2 focus:ring-primary/30 transition-all text-on-surface font-semibold"
-                        />
+                        <div className="flex gap-2">
+                          <input
+                            value={plan.classes_per_week >= 99 ? '' : plan.classes_per_week}
+                            disabled={plan.classes_per_week >= 99}
+                            onChange={e => setPlans(prev => prev.map(p => p.id === plan.id ? { ...p, classes_per_week: Number(e.target.value) } : p))}
+                            type="number"
+                            placeholder="Ilimitado"
+                            className="w-full h-12 px-4 rounded-xl bg-surface-container-highest border-none focus:ring-2 focus:ring-primary/30 transition-all text-on-surface font-semibold disabled:opacity-50"
+                          />
+                          <button 
+                            onClick={() => setPlans(prev => prev.map(p => p.id === plan.id ? { ...p, classes_per_week: p.classes_per_week >= 99 ? 2 : 99 } : p))}
+                            className={`px-3 rounded-xl font-bold text-[10px] uppercase transition-all ${plan.classes_per_week >= 99 ? 'bg-secondary text-white' : 'bg-surface-container-highest text-on-surface-variant'}`}
+                          >
+                            Livre
+                          </button>
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-3 pt-2">
@@ -172,7 +182,7 @@ export default function ManagePlans() {
                     <div>
                       {plan.tag && <span className="px-2 py-0.5 bg-primary-fixed text-on-primary-fixed text-[10px] font-bold rounded mb-2 inline-block">{plan.tag}</span>}
                       <h3 className="font-headline font-bold text-xl">{plan.name}</h3>
-                      <p className="text-on-surface-variant text-sm">{plan.description || `${plan.classes_per_week} aulas por semana`}</p>
+                      <p className="text-on-surface-variant text-sm">{plan.description || (plan.classes_per_week >= 99 ? 'Check-in Livre' : `${plan.classes_per_week} aulas por semana`)}</p>
                       <p className="mt-3 text-2xl font-black">R$ {plan.price}<span className="text-xs font-medium opacity-50">/mês</span></p>
                     </div>
                     <div className="flex flex-col gap-2">
@@ -192,10 +202,33 @@ export default function ManagePlans() {
              <h3 className="font-headline font-bold text-xl">Novo Plano</h3>
              <input placeholder="Nome" value={newPlan.name} onChange={e => setNewPlan(p => ({...p, name: e.target.value}))} className="w-full h-12 px-4 rounded-xl bg-surface-container" />
              <input placeholder="Preço" type="number" value={newPlan.price} onChange={e => setNewPlan(p => ({...p, price: Number(e.target.value)}))} className="w-full h-12 px-4 rounded-xl bg-surface-container" />
-             <select value={newPlan.type} onChange={e => setNewPlan(p => ({...p, type: e.target.value}))} className="w-full h-12 px-4 rounded-xl bg-surface-container">
+             <select value={newPlan.type} onChange={e => setNewPlan(p => ({...p, type: e.target.value}))} className="w-full h-12 px-4 rounded-xl bg-surface-container mb-3">
                 <option value="recorrente">Recorrente</option>
                 <option value="avulso">Avulso</option>
              </select>
+             
+             <div className="flex items-center justify-between p-4 bg-surface-container rounded-2xl">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Check-in</p>
+                  <p className="text-sm font-black">{newPlan.classes_per_week >= 99 ? 'LIVRE / ILIMITADO' : `${newPlan.classes_per_week || 0} aulas / semana`}</p>
+                </div>
+                <div className="flex gap-2">
+                   <input 
+                     type="number" 
+                     value={newPlan.classes_per_week >= 99 ? '' : newPlan.classes_per_week} 
+                     disabled={newPlan.classes_per_week >= 99}
+                     onChange={e => setNewPlan(p => ({...p, classes_per_week: Number(e.target.value)}))}
+                     placeholder="Qtd"
+                     className="w-16 h-10 rounded-lg border-none bg-white text-center font-bold disabled:opacity-30"
+                   />
+                   <button 
+                     onClick={() => setNewPlan(p => ({...p, classes_per_week: p.classes_per_week >= 99 ? 2 : 99}))}
+                     className={`px-4 rounded-lg font-bold text-[10px] uppercase tracking-tighter ${newPlan.classes_per_week >= 99 ? 'bg-secondary text-white' : 'bg-white text-secondary'}`}
+                   >
+                     {newPlan.classes_per_week >= 99 ? 'Remover Livre' : 'Tornar Livre'}
+                   </button>
+                </div>
+             </div>
              <button onClick={addPlan} className="w-full bg-primary text-white py-4 rounded-xl font-bold">CRIAR PLANO</button>
           </section>
         ) : (
