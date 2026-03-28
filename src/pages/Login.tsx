@@ -56,19 +56,20 @@ export default function Login() {
       <div className="flex flex-col relative" style={{ minHeight: '100vh' }}>
 
       <main className="relative z-20 flex-grow flex flex-col items-center pt-12 px-8">
-        <header className="w-full max-w-md text-center mb-4">
-          <h1 className="font-headline font-bold text-2xl tracking-tight leading-tight text-on-surface">
-            SKEMA BEACH CLUB<br />
-            - Futevôlei App
-          </h1>
-        </header>
-
-        <div className="mt-8 mb-4 relative z-30 -mb-12">
+        <div className="mt-8 mb-4 relative z-30 flex flex-col items-center">
           <img
-            alt="Skema Mermaid Logo"
-            className="w-48 h-48 object-contain drop-shadow-sm"
-            src="/mermaid-logo.png"
+            alt="Skema Mermaid"
+            className="w-40 h-40 object-contain drop-shadow-sm mb-4"
+            src="/sereia.svg"
           />
+          <header className="text-center">
+            <h1 className="font-headline font-bold text-3xl tracking-[0.15em] leading-tight text-white drop-shadow-md">
+              SKEMA
+            </h1>
+            <p className="text-[10px] font-bold tracking-[0.4em] uppercase text-white/80 mt-1 ml-1">
+              BEACH CLUB
+            </p>
+          </header>
         </div>
 
         <AnimatePresence mode="wait">
