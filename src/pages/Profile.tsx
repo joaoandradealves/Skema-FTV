@@ -18,6 +18,9 @@ export default function Profile() {
     phone: '',
     avatar_url: null,
   });
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [pointsBalance, setPointsBalance] = useState(0);
+
 
   useEffect(() => {
     getProfile();
@@ -45,6 +48,18 @@ export default function Profile() {
           avatar_url: data.avatar_url,
         });
       }
+
+      // Fetch points and transactions
+      const { data: pointsData } = await supabase.from('loyalty_points').select('balance').eq('user_id', user.id).single();
+      setPointsBalance(pointsData?.balance || 0);
+
+      const { data: transData } = await supabase
+        .from('loyalty_transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      setTransactions(transData || []);
+
     } catch (error: any) {
       alert(error.message);
     } finally {
@@ -202,7 +217,42 @@ export default function Profile() {
             </button>
           </div>
         </form>
+
+        {/* Loyalty Points History */}
+        <section className="space-y-6 pt-10">
+          <div className="flex items-center gap-3">
+             <div className="w-10 h-10 bg-secondary/10 text-secondary rounded-xl flex items-center justify-center">
+                <span className="material-symbols-outlined">stars</span>
+             </div>
+             <div>
+                <h3 className="font-headline font-extrabold text-xl">Meu Skema Points</h3>
+                <p className="text-on-surface-variant text-xs font-medium uppercase tracking-widest">Saldo Atual: <span className="text-secondary font-black">{pointsBalance} Pontos</span></p>
+             </div>
+          </div>
+
+          <div className="space-y-3">
+             {transactions.length > 0 ? transactions.map(t => (
+                <div key={t.id} className="bg-white p-4 rounded-2xl shadow-sm border border-primary-container/10 flex justify-between items-center group">
+                   <div className="flex items-center gap-4">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[18px] ${t.amount > 0 ? 'bg-primary/10 text-primary' : 'bg-error/10 text-error'}`}>
+                         <span className="material-symbols-outlined">{t.amount > 0 ? 'add_circle' : 'remove_circle'}</span>
+                      </div>
+                      <div>
+                         <p className="font-bold text-sm text-on-surface capitalize">{t.description}</p>
+                         <p className="text-[10px] font-medium text-on-surface-variant opacity-60 uppercase">{new Date(t.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                      </div>
+                   </div>
+                   <div className={`font-headline font-black text-sm ${t.amount > 0 ? 'text-primary' : 'text-error'}`}>
+                      {t.amount > 0 ? `+${t.amount}` : t.amount}
+                   </div>
+                </div>
+             )) : (
+                <div className="text-center py-10 opacity-30 italic text-xs font-bold uppercase tracking-widest">Nenhum ponto acumulado ainda</div>
+             )}
+          </div>
+        </section>
       </main>
+
 
       <StudentNavbar activePage="perfil" />
       </div>

@@ -18,6 +18,9 @@ import ManageApprovals from './pages/ManageApprovals';
 import CourtBooking from './pages/CourtBooking';
 import DayUse from './pages/DayUse';
 import ManageLeisure from './pages/ManageLeisure';
+import ManageLoyalty from './pages/ManageLoyalty';
+import CashierPointRedemption from './pages/CashierPointRedemption';
+
 
 export default function App() {
   return (
@@ -40,7 +43,10 @@ export default function App() {
         <Route path="/court-booking" element={<CourtBooking />} />
         <Route path="/day-use" element={<DayUse />} />
         <Route path="/admin/leisure" element={<ManageLeisure />} />
+        <Route path="/admin/loyalty" element={<ManageLoyalty />} />
+        <Route path="/admin/cashier" element={<CashierPointRedemption />} />
       </Routes>
+
     </Router>
   );
 }

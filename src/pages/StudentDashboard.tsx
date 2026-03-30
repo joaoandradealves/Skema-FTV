@@ -15,6 +15,8 @@ export default function StudentDashboard() {
   const [weeklyBookingsCount, setWeeklyBookingsCount] = useState(0);
   const [dayClasses, setDayClasses] = useState<any[]>([]);
   const [bookingLoading, setBookingLoading] = useState<string | null>(null);
+  const [loyaltyPoints, setLoyaltyPoints] = useState<number>(0);
+
 
   useEffect(() => {
     async function fetchData() {
@@ -67,6 +69,15 @@ export default function StudentDashboard() {
           .sort((a: any, b: any) => new Date(a.classes.start_time).getTime() - new Date(b.classes.start_time).getTime());
         
         if (future.length > 0) setNextClass(future[0].classes);
+
+        // Fetch Loyalty Points
+        const { data: pointsData } = await supabase
+          .from('loyalty_points')
+          .select('balance')
+          .eq('user_id', user.id)
+          .single();
+        setLoyaltyPoints(pointsData?.balance || 0);
+
       } catch (error) {
         console.error(error);
       } finally {
@@ -239,7 +250,18 @@ export default function StudentDashboard() {
                   </div>
               </div>
           )}
+          
+          <div className="bg-secondary p-3 rounded-2xl shadow-lg border border-white/10 min-w-[120px]">
+              <div className="text-[10px] font-black text-white/70 uppercase tracking-tighter flex items-center gap-1">
+                <span className="material-symbols-outlined text-[10px]">stars</span>
+                Meus Pontos
+              </div>
+              <div className="text-xl font-headline font-black text-white leading-none">
+                  {loyaltyPoints} <span className="text-[10px] opacity-60">Pts</span>
+              </div>
+          </div>
         </section>
+
 
         {/* Next Class Highlight */}
         {nextClass ? (

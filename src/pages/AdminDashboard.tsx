@@ -12,6 +12,8 @@ export default function AdminDashboard() {
     { title: 'Gestão de Planos', icon: 'payments', path: '/manage-plans', color: 'bg-secondary' },
     { title: 'Aprovações Pendentes', icon: 'how_to_reg', path: '/admin/approvals', color: 'bg-primary-container' },
     { title: 'Gestão de Lazer', icon: 'stadium', path: '/admin/leisure', color: 'bg-secondary' },
+    { title: 'Prêmios (Fidelidade)', icon: 'redeem', path: '/admin/loyalty', color: 'bg-primary' },
+    { title: 'Caixa (Resgate)', icon: 'point_of_sale', path: '/admin/cashier', color: 'bg-secondary' },
     { title: 'Gestão de Eventos', icon: 'event', path: '/admin', color: 'bg-tertiary' },
     { title: 'Relatórios Gerais', icon: 'analytics', path: '/admin', color: 'bg-on-surface-variant/20' },
   ];

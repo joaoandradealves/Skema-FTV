@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import WavyBackground from '../components/WavyBackground';
@@ -7,21 +7,47 @@ import StudentNavbar from '../components/StudentNavbar';
 
 export default function DayUse() {
   const navigate = useNavigate();
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [offers, setOffers] = useState<any[]>([]);
+  const [selectedOffer, setSelectedOffer] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    fetchOffers();
+  }, []);
+
+  async function fetchOffers() {
+    try {
+      setLoading(true);
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from('day_use_offers')
+        .select('*')
+        .gte('offer_date', today)
+        .order('offer_date', { ascending: true });
+      
+      if (error) throw error;
+      setOffers(data || []);
+    } catch (error: any) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleRequest() {
+    if (!selectedOffer) return;
     try {
       setSubmitting(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Faça login primeiro');
 
-      const dateString = selectedDate.toISOString().split('T')[0];
+      const offer = offers.find(o => o.id === selectedOffer);
       
       const { error } = await supabase.from('day_use_bookings').insert({
         student_id: user.id,
-        booking_date: dateString,
-        price: 30.00, // Preço fixo por dia
+        offer_id: selectedOffer,
+        price: offer.price,
         status: 'pendente'
       });
 
@@ -46,47 +72,74 @@ export default function DayUse() {
             <div className="w-20 h-20 bg-secondary/10 text-secondary rounded-full flex items-center justify-center mx-auto shadow-inner">
               <span className="material-symbols-outlined text-4xl">wb_sunny</span>
             </div>
-            <h2 className="font-headline text-4xl font-black tracking-tighter text-on-surface">Curta o <span className="text-secondary">Dia</span></h2>
-            <p className="text-on-surface-variant text-sm font-medium max-w-xs mx-auto">Acesso às quadras e instalações do clube durante todo o dia selecionado.</p>
+            <h2 className="font-headline text-4xl font-black tracking-tighter text-on-surface">Agende seu <span className="text-secondary">Day Use</span></h2>
+            <p className="text-on-surface-variant text-sm font-medium max-w-xs mx-auto">Escolha uma das ofertas propostas pelo clube para curtir o dia.</p>
           </section>
 
-          {/* Pricing Card */}
-          <section className="bg-white p-8 rounded-[40px] shadow-xl border-2 border-primary-container/10 relative">
-             <div className="space-y-1">
-                <p className="text-[10px] font-black text-secondary tracking-[0.2em] uppercase">Investimento único</p>
-                <div className="flex items-baseline justify-center gap-1 text-on-surface">
-                   <span className="text-sm font-bold">R$</span>
-                   <span className="text-5xl font-black tracking-tighter">30,00</span>
-                   <span className="text-xs font-medium opacity-50">/dia</span>
+          {/* Offers List */}
+          <section className="space-y-4">
+            {loading ? (
+                <div className="py-10 animate-pulse text-on-surface-variant/30 font-black uppercase tracking-widest text-xs">Buscando ofertas...</div>
+            ) : offers.length > 0 ? (
+                offers.map(off => (
+                    <button 
+                        key={off.id}
+                        onClick={() => setSelectedOffer(off.id)}
+                        className={`w-full p-6 rounded-[32px] border-2 transition-all flex justify-between items-center text-left
+                            ${selectedOffer === off.id 
+                                ? 'bg-secondary border-secondary text-white shadow-lg scale-[1.02]' 
+                                : 'bg-white border-primary-container/10 text-on-surface shadow-sm hover:border-secondary/30'
+                            }
+                        `}
+                    >
+                        <div>
+                            <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${selectedOffer === off.id ? 'text-white/70' : 'text-secondary'}`}>
+                                {new Date(off.offer_date).toLocaleDateString('pt-BR', { weekday: 'long' })}
+                            </p>
+                            <h3 className="font-headline font-black text-xl tracking-tight">
+                                {new Date(off.offer_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
+                            </h3>
+                            <p className={`text-xs font-bold ${selectedOffer === off.id ? 'text-white/60' : 'text-on-surface-variant'}`}>
+                                {off.start_time.slice(0,5)} às {off.end_time.slice(0,5)}
+                            </p>
+                        </div>
+                        <div className="text-right">
+                            <span className="text-xs font-bold opacity-60">R$</span>
+                            <span className="text-3xl font-black ml-1 tracking-tighter">{off.price.toString().split('.')[0]}</span>
+                        </div>
+                    </button>
+                ))
+            ) : (
+                <div className="bg-white/50 p-10 rounded-[40px] border-2 border-dashed border-primary-container/20">
+                    <p className="text-on-surface-variant font-bold italic opacity-50">Nenhuma oferta de Day Use disponível no momento. Fique de olho!</p>
                 </div>
-             </div>
-             
-             <div className="mt-8 pt-8 border-t border-dashed border-primary-container/20">
-                <p className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-4">Selecione a data:</p>
-                <input 
-                    type="date" 
-                    value={selectedDate.toISOString().split('T')[0]}
-                    onChange={(e) => setSelectedDate(new Date(e.target.value))}
-                    className="w-full h-14 bg-surface-container rounded-2xl border-none font-bold text-center text-secondary focus:ring-secondary/30"
-                />
-             </div>
+            )}
           </section>
 
           {/* Confirm Button */}
-          <button 
-            disabled={submitting}
-            onClick={handleRequest}
-            className="w-full bg-secondary text-white h-16 rounded-2xl font-headline font-black text-sm uppercase tracking-[0.25em] shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3"
-          >
-            {submitting ? 'PROCESSANDO...' : 'SOLICITAR DAY USE'}
-            <span className="material-symbols-outlined">payments</span>
-          </button>
+          {selectedOffer && (
+              <button 
+                disabled={submitting}
+                onClick={handleRequest}
+                className="w-full bg-secondary text-white h-16 rounded-2xl font-headline font-black text-sm uppercase tracking-[0.25em] shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3 animate-[slideUp_0.3s_ease]"
+              >
+                {submitting ? 'PROCESSANDO...' : 'SOLICITAR PARTICIPAÇÃO'}
+                <span className="material-symbols-outlined font-black">arrow_forward</span>
+              </button>
+          )}
           
           <p className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-[0.1em]">A liberação ocorre após a aprovação do administrador do clube.</p>
 
         </main>
 
         <StudentNavbar activePage="home" />
+
+        <style>{`
+          @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+          }
+        `}</style>
       </div>
     </WavyBackground>
   );
