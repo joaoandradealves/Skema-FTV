@@ -4,6 +4,12 @@ import { supabase } from '../lib/supabase';
 import WavyBackground from '../components/WavyBackground';
 import TopAppBar from '../components/TopAppBar';
 import StudentNavbar from '../components/StudentNavbar';
+import { motion, AnimatePresence } from 'framer-motion';
+
+interface RosterStudent {
+    full_name: string;
+    avatar_url: string;
+}
 
 export default function ClassSelection() {
   const navigate = useNavigate();
@@ -14,6 +20,10 @@ export default function ClassSelection() {
   const [profile, setProfile] = useState<any>(null);
   const [weeklyBookingsCount, setWeeklyBookingsCount] = useState(0);
   const [bookedClassIds, setBookedClassIds] = useState<string[]>([]);
+  
+  // Roster State
+  const [roster, setRoster] = useState<{ className: string, students: RosterStudent[] } | null>(null);
+  const [loadingRoster, setLoadingRoster] = useState(false);
 
   useEffect(() => {
     fetchProfileAndData();
@@ -73,7 +83,6 @@ export default function ClassSelection() {
           return classTime >= startOfMonth && classTime <= endOfMonth;
         }).length || 0;
       } else {
-        // Default: Week (Monday to Sunday)
         const day = now.getDay();
         const diff = now.getDate() - day + (day === 0 ? -6 : 1);
         const monday = new Date(now.getFullYear(), now.getMonth(), diff);
@@ -94,6 +103,37 @@ export default function ClassSelection() {
       console.error(error.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchRoster(cls: any) {
+    try {
+        setLoadingRoster(true);
+        setRoster({ className: cls.name, students: [] }); // Set title immediately
+        
+        const { data, error } = await supabase
+            .from('bookings')
+            .select(`
+                profile:student_id (
+                    full_name,
+                    avatar_url
+                )
+            `)
+            .eq('class_id', cls.id)
+            .neq('status', 'cancelado');
+
+        if (error) throw error;
+        
+        const students = data?.map((b: any) => ({
+            full_name: b.profile.full_name,
+            avatar_url: b.profile.avatar_url
+        })) || [];
+
+        setRoster({ className: cls.name, students });
+    } catch (error: any) {
+        alert('Erro ao carregar lista: ' + error.message);
+    } finally {
+        setLoadingRoster(false);
     }
   }
 
@@ -168,9 +208,6 @@ export default function ClassSelection() {
   return (
     <WavyBackground topHeight="20%">
       <div className="bg-surface text-on-surface min-h-screen pb-32 font-body selection:bg-primary/30 relative overflow-hidden text-sm">
-      {/* Background Decorative Elements */}
-      <div className="absolute -top-10 -right-10 w-40 h-40 bg-secondary/10 rounded-full blur-3xl pointer-events-none"></div>
-      
       <TopAppBar 
         title="CHECK-IN" 
         showBackButton 
@@ -179,14 +216,6 @@ export default function ClassSelection() {
       />
 
       <main className="mt-20 px-6 max-w-2xl mx-auto space-y-8 relative z-10">
-        {/* Profile Status */}
-        {profile && profile.plan_status !== 'ativo' && (
-            <div className="p-4 bg-error/10 border-2 border-error/20 rounded-2xl text-error text-[10px] font-bold uppercase tracking-widest text-center">
-                Check-in bloqueado: {profile.plan_status === 'pendente' ? 'Aguardando aprovação do plano' : 'Selecione um plano no Perfil'}
-            </div>
-        )}
-
-        {/* Header Section */}
         <section className="space-y-1">
             <div className="flex items-center gap-2 text-secondary font-bold text-[10px] uppercase tracking-[0.2em]">
                 <span className="material-symbols-outlined text-sm">wb_sunny</span>
@@ -195,7 +224,6 @@ export default function ClassSelection() {
             <h2 className="font-headline text-4xl font-black tracking-tighter text-on-surface">Agende seu <span className="text-secondary">Treino</span></h2>
         </section>
 
-        {/* Horizontal Date Picker */}
         <section className="relative">
           <div className="flex gap-3 overflow-x-auto pb-4 no-scrollbar -mx-6 px-6">
             {weekDays.map((date, idx) => {
@@ -222,7 +250,6 @@ export default function ClassSelection() {
           </div>
         </section>
 
-        {/* Available Classes */}
         <section className="space-y-6">
           <div className="flex items-center justify-between px-1">
             <h3 className="font-headline font-bold text-lg text-on-surface font-headline uppercase tracking-tighter">Horários</h3>
@@ -239,8 +266,7 @@ export default function ClassSelection() {
                 const hoursDiff = (startTime.getTime() - now.getTime()) / (1000 * 60 * 60);
                 const isLocked = hoursDiff > 48;
                 const isFull = (cls.bookings[0]?.count || 0) >= cls.capacity;
-
-                 const isBooked = bookedClassIds.includes(cls.id);
+                const isBooked = bookedClassIds.includes(cls.id);
 
                 return (
                   <div key={cls.id} className="bg-white p-6 rounded-[32px] border-2 border-primary-container/10 shadow-sm transition-all group overflow-hidden relative">
@@ -257,15 +283,20 @@ export default function ClassSelection() {
                           </div>
                         </div>
                         
-                        <div className="flex items-center gap-5 text-on-surface-variant">
+                        <div className="flex items-center gap-3 text-on-surface-variant">
                           <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container rounded-full text-xs font-bold underline decoration-secondary decoration-2 h-7">
                             <span className="material-symbols-outlined text-sm">schedule</span>
                             {new Date(cls.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                           </div>
-                          <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container rounded-full text-xs font-bold h-7">
-                            <span className="material-symbols-outlined text-sm text-secondary">groups</span>
-                            {cls.bookings[0]?.count || 0}/{cls.capacity} vagas
-                          </div>
+                          
+                          {/* Quem vai treinar? CLICKABLE AREA */}
+                          <button 
+                            onClick={() => fetchRoster(cls)}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-secondary/10 text-secondary rounded-full text-xs font-black transition-all hover:bg-secondary/20 active:scale-95 h-7"
+                          >
+                            <span className="material-symbols-outlined text-sm">groups</span>
+                            {cls.bookings[0]?.count || 0}/{cls.capacity} <span className="text-[9px] uppercase tracking-tighter opacity-70">Ver Alunos</span>
+                          </button>
                         </div>
                       </div>
 
@@ -300,11 +331,74 @@ export default function ClassSelection() {
         </section>
       </main>
 
+      {/* Roster Modal */}
+      <AnimatePresence>
+        {roster && (
+            <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
+                <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setRoster(null)}
+                    className="absolute inset-0 bg-on-background/80 backdrop-blur-sm"
+                />
+                <motion.div 
+                    initial={{ y: '100%' }}
+                    animate={{ y: 0 }}
+                    exit={{ y: '100%' }}
+                    className="relative bg-surface w-full max-w-sm rounded-t-[40px] sm:rounded-[40px] p-8 shadow-2xl space-y-6"
+                >
+                    <div className="text-center space-y-1">
+                        <h3 className="font-headline font-black text-2xl text-on-surface tracking-tight uppercase">QUEM VAI TREINAR? 🏐</h3>
+                        <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">{roster.className}</p>
+                    </div>
+
+                    <div className="max-h-[40vh] overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                        {loadingRoster ? (
+                            <div className="py-10 text-center animate-pulse text-[10px] font-black uppercase tracking-widest text-on-surface-variant/40">Chamando a turma...</div>
+                        ) : roster.students.length > 0 ? (
+                            roster.students.map((student, idx) => (
+                                <motion.div 
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: idx * 0.05 }}
+                                    key={idx} 
+                                    className="bg-white p-3 rounded-2xl border border-primary-container/10 flex items-center gap-3 shadow-sm"
+                                >
+                                    <div className="w-10 h-10 bg-primary/10 rounded-xl overflow-hidden border border-primary/5 flex items-center justify-center">
+                                        {student.avatar_url ? (
+                                            <img src={student.avatar_url} alt={student.full_name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <span className="material-symbols-outlined text-primary/30">person</span>
+                                        )}
+                                    </div>
+                                    <span className="font-headline font-black text-sm text-on-surface uppercase tracking-tight">{student.full_name}</span>
+                                </motion.div>
+                            ))
+                        ) : (
+                            <div className="py-10 text-center text-on-surface-variant/40 font-medium italic text-xs px-10">Você será o primeiro desta turma! Agende e inspire outros. ✨</div>
+                        )}
+                    </div>
+
+                    <button 
+                        onClick={() => setRoster(null)}
+                        className="w-full h-16 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 active:scale-95 transition-all"
+                    >
+                        FECHAR
+                    </button>
+                </motion.div>
+            </div>
+        )}
+      </AnimatePresence>
+
       <StudentNavbar activePage="home" />
 
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 105, 113, 0.1); border-radius: 10px; }
       `}</style>
       </div>
     </WavyBackground>

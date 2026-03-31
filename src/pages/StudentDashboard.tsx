@@ -45,7 +45,11 @@ export default function StudentDashboard() {
           .neq('status', 'cancelado')
           .order('created_at', { ascending: false });
         
-        setBookings(bookingsData || []);
+        const futureBookings = (bookingsData || []).filter((b: any) => {
+          return new Date(b.classes.start_time) >= new Date();
+        });
+        
+        setBookings(futureBookings);
 
         // Cycle Count (Weekly or Monthly)
         const now = new Date();
