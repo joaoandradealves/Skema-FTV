@@ -3,11 +3,18 @@ import React from 'react';
 interface WavyBackgroundProps {
   children: React.ReactNode;
   topHeight?: string; // e.g. "30%", "40vh"
+  bgColor?: string;
+  dividerColor?: string;
 }
 
-export default function WavyBackground({ children, topHeight = "35%" }: WavyBackgroundProps) {
+export default function WavyBackground({ 
+  children, 
+  topHeight = "35%", 
+  bgColor = "bg-surface", 
+  dividerColor = "fill-surface" 
+}: WavyBackgroundProps) {
   return (
-    <div className="relative min-h-screen w-full font-body text-on-surface overflow-x-hidden bg-surface">
+    <div className={`relative min-h-screen w-full font-body text-on-surface overflow-x-hidden ${bgColor}`}>
       {/* Top Teal Section */}
       <div 
         className="absolute top-0 left-0 w-full bg-primary-container z-0" 
@@ -20,7 +27,7 @@ export default function WavyBackground({ children, topHeight = "35%" }: WavyBack
         style={{ top: topHeight }}
       >
         <svg 
-            className="w-full fill-surface" 
+            className={`w-full ${dividerColor}`} 
             viewBox="0 0 1440 320" 
             xmlns="http://www.w3.org/2000/svg"
             preserveAspectRatio="none"

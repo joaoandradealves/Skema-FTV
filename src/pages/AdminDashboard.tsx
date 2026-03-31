@@ -13,7 +13,7 @@ export default function AdminDashboard() {
     { title: 'Aprovações Pendentes', icon: 'how_to_reg', path: '/admin/approvals', color: 'bg-primary-container' },
     { title: 'Gestão de Lazer', icon: 'stadium', path: '/admin/leisure', color: 'bg-secondary' },
     { title: 'Prêmios (Fidelidade)', icon: 'redeem', path: '/admin/loyalty', color: 'bg-primary' },
-    { title: 'Caixa (Resgate)', icon: 'point_of_sale', path: '/admin/cashier', color: 'bg-secondary' },
+    { title: 'Caixa (Resgate)', icon: 'qr_code_scanner', path: '/admin/scan-pontos', color: 'bg-secondary' },
     { title: 'Gestão de Professores', icon: 'badge', path: '/manage-teachers', color: 'bg-primary' },
     { title: 'Gestão de Planos', icon: 'payments', path: '/manage-plans', color: 'bg-secondary' },
   ];

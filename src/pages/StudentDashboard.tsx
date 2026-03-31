@@ -277,17 +277,31 @@ export default function StudentDashboard() {
                   </div>
               </div>
           )}
-          
-          <div className="bg-secondary p-3 rounded-2xl shadow-lg border border-white/10 min-w-[120px]">
-              <div className="text-[10px] font-black text-white/70 uppercase tracking-tighter flex items-center gap-1">
-                <span className="material-symbols-outlined text-[10px]">stars</span>
-                Meus Pontos
-              </div>
-              <div className="text-xl font-headline font-black text-white leading-none">
-                  {loyaltyPoints} <span className="text-[10px] opacity-60">Pts</span>
-              </div>
-          </div>
         </section>
+
+        {/* Skema Points Reward Card */}
+        <Link to="/meu-pontos" className="block bg-[#1A1A1A] border-2 border-[#D4AF37]/30 p-6 rounded-[32px] shadow-xl group active:scale-95 transition-all overflow-hidden relative">
+            <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 transform rotate-12 transition-all">
+                <span className="material-symbols-outlined text-[100px] text-[#D4AF37]">workspace_premium</span>
+            </div>
+            <div className="flex justify-between items-center relative z-10">
+                <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#D4AF37]/80">Seu Programa de Fidelidade</p>
+                    <h3 className="font-headline font-black text-2xl text-white">SKEMA <span className="text-[#D4AF37]">POINTS</span></h3>
+                    <div className="flex items-center gap-2 text-[#D4AF37]">
+                        <span className="material-symbols-outlined text-sm font-bold">celebration</span>
+                        <p className="text-[10px] font-bold uppercase tracking-widest">Resgate prêmios exclusivos</p>
+                    </div>
+                </div>
+                <div className="text-right">
+                    <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">Saldo</p>
+                    <div className="flex items-baseline gap-1 justify-end">
+                        <span className="text-3xl font-black text-[#D4AF37]">{loyaltyPoints}</span>
+                        <span className="text-[10px] font-bold text-white/60">pts</span>
+                    </div>
+                </div>
+            </div>
+        </Link>
 
 
         {/* Next Class Highlight */}
