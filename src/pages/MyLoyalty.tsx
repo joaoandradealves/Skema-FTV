@@ -14,6 +14,14 @@ interface Reward {
     image_url: string;
 }
 
+interface Transaction {
+    id: string;
+    amount: number;
+    type: string;
+    description: string;
+    created_at: string;
+}
+
 export default function MyLoyalty() {
     const navigate = useNavigate();
     const [points, setPoints] = useState(0);
@@ -24,6 +32,10 @@ export default function MyLoyalty() {
     const [showQR, setShowQR] = useState(false);
     const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
     const [activeTier, setActiveTier] = useState<number | null>(null);
+    const [profile, setProfile] = useState<any>(null);
+    const [showTransactions, setShowTransactions] = useState(false);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [loadingTransactions, setLoadingTransactions] = useState(false);
 
     useEffect(() => {
         fetchData();
@@ -69,6 +81,14 @@ export default function MyLoyalty() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return navigate('/');
 
+            // Fetch Profile for Avatar
+            const { data: profileData } = await supabase
+                .from('profiles')
+                .select('full_name, avatar_url')
+                .eq('id', user.id)
+                .single();
+            setProfile(profileData);
+
             const { data: pointsData } = await supabase
                 .from('loyalty_points')
                 .select('balance')
@@ -87,6 +107,26 @@ export default function MyLoyalty() {
             console.error(error.message);
         } finally {
             setLoading(false);
+        }
+    }
+
+    async function fetchTransactions() {
+        try {
+            setLoadingTransactions(true);
+            setShowTransactions(true);
+            const { data: { user } } = await supabase.auth.getUser();
+            const { data, error } = await supabase
+                .from('loyalty_transactions')
+                .select('*')
+                .eq('user_id', user?.id)
+                .order('created_at', { ascending: false });
+            
+            if (error) throw error;
+            setTransactions(data || []);
+        } catch (error: any) {
+            console.error(error.message);
+        } finally {
+            setLoadingTransactions(false);
         }
     }
 
@@ -124,7 +164,7 @@ export default function MyLoyalty() {
     };
 
     // Get unique tiers from rewards
-    const tiers = Array.from(new Set(rewards.map(r => r.points_cost))).sort((a,b) => a-b);
+    const tiers = Array.from(new Set(rewards.map(r => r.points_cost))).sort((a: number, b: number) => a - b);
     
     const filteredRewards = activeTier 
         ? rewards.filter(r => r.points_cost <= activeTier)
@@ -133,7 +173,12 @@ export default function MyLoyalty() {
     return (
         <WavyBackground topHeight="25%" bgColor="bg-surface" dividerColor="fill-surface">
             <div className="bg-surface text-on-surface min-h-screen pb-32 font-body selection:bg-primary/20">
-                <TopAppBar title="SKEMA POINTS" showBackButton />
+                <TopAppBar 
+                    title="SKEMA POINTS" 
+                    showBackButton 
+                    avatarSrc={profile?.avatar_url}
+                    avatarAlt={profile?.full_name}
+                />
 
                 <main className="mt-20 relative z-10">
                     {/* Points Summary - McDonald's Style */}
@@ -142,7 +187,10 @@ export default function MyLoyalty() {
                             <h2 className="text-4xl font-black text-on-surface tracking-tight">
                                 {points.toLocaleString('pt-BR')} <span className="text-primary text-xl">pts.</span>
                             </h2>
-                            <button className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-1">
+                            <button 
+                                onClick={fetchTransactions}
+                                className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-1 active:scale-95 transition-transform"
+                            >
                                 Extrato <span className="material-symbols-outlined text-sm">chevron_right</span>
                             </button>
                         </div>
@@ -233,6 +281,59 @@ export default function MyLoyalty() {
                     </section>
                 </main>
 
+                {/* Transactions Modal */}
+                <AnimatePresence>
+                    {showTransactions && (
+                        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
+                            <motion.div 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute inset-0 bg-on-background/80 backdrop-blur-md" 
+                                onClick={() => setShowTransactions(false)}
+                            />
+                            <motion.div 
+                                initial={{ y: '100%' }}
+                                animate={{ y: 0 }}
+                                exit={{ y: '100%' }}
+                                className="bg-surface w-full max-w-sm rounded-t-[50px] sm:rounded-[50px] p-8 shadow-2xl relative z-10 space-y-6"
+                            >
+                                <div className="text-center space-y-1">
+                                    <h3 className="font-headline font-black text-2xl text-on-surface tracking-tight uppercase">Extrato de Pontos</h3>
+                                    <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Sua evolução no Skema</p>
+                                </div>
+
+                                <div className="max-h-[40vh] overflow-y-auto space-y-3 custom-scrollbar pr-2">
+                                    {loadingTransactions ? (
+                                        <div className="py-10 text-center animate-pulse text-[10px] font-black uppercase tracking-widest text-on-surface-variant/40">Sincronizando saldo...</div>
+                                    ) : transactions.length > 0 ? (
+                                        transactions.map((tx) => (
+                                            <div key={tx.id} className="bg-white p-4 rounded-3xl border border-surface-container-highest flex items-center justify-between shadow-sm">
+                                                <div className="space-y-0.5">
+                                                    <p className="text-[10px] font-black text-on-surface uppercase tracking-tight leading-tight">{tx.description || (tx.type === 'earn' ? 'Crédito de Pontos' : 'Resgate de Prêmio')}</p>
+                                                    <p className="text-[9px] font-bold text-on-surface-variant/60 uppercase">{new Date(tx.created_at).toLocaleDateString('pt-BR')}</p>
+                                                </div>
+                                                <span className={`text-sm font-black tabular-nums ${tx.type === 'earn' ? 'text-primary' : 'text-error'}`}>
+                                                    {tx.type === 'earn' ? '+' : '-'}{tx.amount}
+                                                </span>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="py-10 text-center text-on-surface-variant/40 font-medium italic text-xs">Nenhuma transação encontrada.</div>
+                                    )}
+                                </div>
+
+                                <button 
+                                    onClick={() => setShowTransactions(false)}
+                                    className="w-full h-16 bg-on-surface text-surface rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all"
+                                >
+                                    VOLTAR
+                                </button>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
+
                 {/* QR Modal - McDonald's Style Light Theme */}
                 <AnimatePresence>
                     {showQR && selectedReward && (
@@ -285,6 +386,13 @@ export default function MyLoyalty() {
                     )}
                 </AnimatePresence>
             </div>
+            <style>{`
+                .no-scrollbar::-webkit-scrollbar { display: none; }
+                .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+                .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 105, 113, 0.1); border-radius: 10px; }
+            `}</style>
         </WavyBackground>
     );
 }

@@ -18,6 +18,8 @@ export default function StudentHistory() {
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<{ date: string, classes: BookingDetail[] } | null>(null);
 
+  const [profile, setProfile] = useState<any>(null);
+
   useEffect(() => {
     fetchHistory();
   }, [year]);
@@ -27,6 +29,14 @@ export default function StudentHistory() {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      // Fetch Profile for Avatar
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('full_name, avatar_url')
+        .eq('id', user.id)
+        .single();
+      setProfile(profileData);
 
       const { data, error } = await supabase
         .from('bookings')
@@ -119,7 +129,12 @@ export default function StudentHistory() {
   return (
     <WavyBackground topHeight="25%">
       <div className="bg-surface font-body text-on-surface antialiased min-h-screen pb-32 relative selection:bg-primary/30">
-      <TopAppBar title="MEU HISTÓRICO" showBackButton />
+      <TopAppBar 
+        title="MEU HISTÓRICO" 
+        showBackButton 
+        avatarSrc={profile?.avatar_url}
+        avatarAlt={profile?.full_name}
+      />
 
       <main className="mt-20 px-6 max-w-4xl mx-auto space-y-10">
         {/* Year Selector */}
