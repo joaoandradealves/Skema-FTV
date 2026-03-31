@@ -156,7 +156,7 @@ export default function ManagePlans() {
               </div>
             </div>
             <div className="space-y-1">
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1.5 ml-1">Ciclo de Renovação</label>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1.5 ml-1">Ciclo do Plano</label>
               <select
                 value={plan.billing_cycle}
                 onChange={e => setPlans(prev => prev.map(p => p.id === plan.id ? { ...p, billing_cycle: e.target.value as 'semanal' | 'mensal' } : p))}
@@ -334,11 +334,11 @@ export default function ManagePlans() {
                                     </div>
                                 </div>
                                 <div className="w-[140px]">
-                                    <label className="text-[9px] font-bold text-on-surface-variant/60 uppercase tracking-widest pl-1 mb-1 block">Renovação</label>
+                                    <label className="text-[9px] font-bold text-secondary uppercase tracking-widest pl-1 mb-1 block">Ciclo de Créditos ✨</label>
                                     <select
                                         value={newPlan.billing_cycle}
                                         onChange={e => setNewPlan(p => ({...p, billing_cycle: e.target.value as 'semanal' | 'mensal'}))}
-                                        className="w-full h-14 px-4 rounded-2xl border-none bg-white font-black shadow-sm appearance-none"
+                                        className="w-full h-14 px-4 rounded-2xl border-none bg-white font-black shadow-sm appearance-none text-secondary"
                                     >
                                         <option value="semanal">Semanal</option>
                                         <option value="mensal">Mensal</option>
