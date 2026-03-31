@@ -69,6 +69,26 @@ export default function ManageStudents() {
     }
   }
 
+  async function handleDeleteStudent(id: string) {
+    if (!confirm('Deseja realmente excluir este aluno? Isso removerá o perfil dele da base de dados.')) return;
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      setStudents(prev => prev.filter(s => s.id !== id));
+      showSuccess('Aluno removido com sucesso!');
+      setEditingStudent(null);
+    } catch (error: any) {
+      alert(error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const exportCSV = () => {
     const headers = ['Nome', 'Email', 'Telefone', 'Status do Plano', 'Data de Cadastro'];
     const rows = students.map(s => [
@@ -173,6 +193,12 @@ export default function ManageStudents() {
                   >
                     <span className="material-symbols-outlined">edit</span>
                   </button>
+                  <button 
+                    onClick={() => handleDeleteStudent(student.id)}
+                    className="flex-1 md:flex-none w-12 h-12 bg-red-50 text-red-500 rounded-xl flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                  >
+                    <span className="material-symbols-outlined">delete</span>
+                  </button>
                 </div>
               </div>
             ))
@@ -229,12 +255,20 @@ export default function ManageStudents() {
                 </div>
               </div>
 
-              <button 
-                onClick={handleUpdateStudent}
-                className="w-full h-16 bg-primary text-white rounded-2xl font-headline font-black text-lg shadow-xl shadow-primary/20 active:scale-95 transition-transform"
-              >
-                SALVAR ALTERAÇÕES
-              </button>
+              <div className="flex gap-3">
+                <button 
+                  onClick={handleUpdateStudent}
+                  className="flex-1 h-16 bg-primary text-white rounded-2xl font-headline font-black text-lg shadow-xl shadow-primary/20 active:scale-95 transition-transform"
+                >
+                  SALVAR
+                </button>
+                <button 
+                  onClick={() => handleDeleteStudent(editingStudent.id)}
+                  className="px-6 h-16 bg-red-50 text-red-500 rounded-2xl font-bold flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm active:scale-95"
+                >
+                  <span className="material-symbols-outlined">delete</span>
+                </button>
+              </div>
             </div>
           </div>
         )}

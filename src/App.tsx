@@ -24,6 +24,8 @@ import ScanRedemption from './pages/ScanRedemption';
 import CashierPointRedemption from './pages/CashierPointRedemption';
 import AdminAnalytics from './pages/AdminAnalytics';
 import ManageStudents from './pages/ManageStudents';
+import ForgotPassword from './pages/ForgotPassword';
+import UpdatePassword from './pages/UpdatePassword';
 
 
 export default function App() {
@@ -53,6 +55,8 @@ export default function App() {
         <Route path="/admin/analytics" element={<AdminAnalytics />} />
         <Route path="/admin/students" element={<ManageStudents />} />
         <Route path="/meu-pontos" element={<MyLoyalty />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/update-password" element={<UpdatePassword />} />
       </Routes>
 
     </Router>

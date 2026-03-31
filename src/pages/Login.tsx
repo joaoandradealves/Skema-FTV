@@ -150,6 +150,15 @@ export default function Login() {
               >
                 {loading ? 'ENTRANDO...' : 'ENTRAR'}
               </button>
+
+              <div className="text-center pt-4">
+                <Link 
+                  to="/forgot-password" 
+                  className="text-[10px] font-black uppercase tracking-widest text-on-surface opacity-60 hover:opacity-100 transition-opacity"
+                >
+                  Esqueci minha senha
+                </Link>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
