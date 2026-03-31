@@ -28,7 +28,7 @@ export default function ClassSelection() {
       // Fetch Profile with Plan
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('*, plan:plan_id(classes_per_week)')
+        .select('*, plan:plan_id(classes_per_week, billing_cycle)')
         .eq('id', user.id)
         .single();
       setProfile(profileData);
@@ -53,17 +53,8 @@ export default function ClassSelection() {
       if (classesError) throw classesError;
       setClasses(classesData || []);
 
-      // Calculate Weekly Bookings (Monday to Sunday)
+      // 2. Count bookings based on plan cycle
       const now = new Date();
-      const day = now.getDay();
-      const diff = now.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
-      const monday = new Date(now.setDate(diff));
-      monday.setHours(0,0,0,0);
-      
-      const sunday = new Date(monday);
-      sunday.setDate(monday.getDate() + 6);
-      sunday.setHours(23,59,59,999);
-
       const { data: weeklyBookings } = await supabase
         .from('bookings')
         .select('*, class:class_id(start_time, id)')
@@ -73,13 +64,31 @@ export default function ClassSelection() {
       // 1. Set Booked Class IDs
       setBookedClassIds(weeklyBookings?.map(b => b.class.id) || []);
 
-      // 2. Filter only those where class start_time is this week
-      const thisWeekCount = weeklyBookings?.filter(b => {
+      let cycleCount = 0;
+      if (profileData?.plan?.billing_cycle === 'mensal') {
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        cycleCount = weeklyBookings?.filter(b => {
+          const classTime = new Date(b.class.start_time);
+          return classTime >= startOfMonth && classTime <= endOfMonth;
+        }).length || 0;
+      } else {
+        // Default: Week (Monday to Sunday)
+        const day = now.getDay();
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+        const monday = new Date(now.getFullYear(), now.getMonth(), diff);
+        monday.setHours(0,0,0,0);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        sunday.setHours(23,59,59,999);
+
+        cycleCount = weeklyBookings?.filter(b => {
           const classTime = new Date(b.class.start_time);
           return classTime >= monday && classTime <= sunday;
-      }).length || 0;
+        }).length || 0;
+      }
 
-      setWeeklyBookingsCount(thisWeekCount);
+      setWeeklyBookingsCount(cycleCount);
 
     } catch (error: any) {
       console.error(error.message);
@@ -96,8 +105,9 @@ export default function ClassSelection() {
       }
 
       const limit = profile.plan?.classes_per_week || 0;
+      const cycleText = profile.plan?.billing_cycle === 'mensal' ? 'mês' : 'semana';
       if (limit < 99 && weeklyBookingsCount >= limit) {
-          alert(`Você já atingiu seu limite de ${limit} aulas nesta semana!`);
+          alert(`Você já atingiu seu limite de ${limit} aulas nest${cycleText === 'mês' ? 'e' : 'a'} ${cycleText}!`);
           return;
       }
 
@@ -180,7 +190,7 @@ export default function ClassSelection() {
         <section className="space-y-1">
             <div className="flex items-center gap-2 text-secondary font-bold text-[10px] uppercase tracking-[0.2em]">
                 <span className="material-symbols-outlined text-sm">wb_sunny</span>
-                {profile?.plan ? `${weeklyBookingsCount}/${profile.plan.classes_per_week} aulas usadas na semana` : 'Vagas Disponíveis'}
+                {profile?.plan ? `${weeklyBookingsCount}/${profile.plan.classes_per_week} aulas no ${profile.plan.billing_cycle === 'mensal' ? 'mês' : 'semana'}` : 'Vagas Disponíveis'}
             </div>
             <h2 className="font-headline text-4xl font-black tracking-tighter text-on-surface">Agende seu <span className="text-secondary">Treino</span></h2>
         </section>

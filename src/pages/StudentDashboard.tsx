@@ -28,7 +28,7 @@ export default function StudentDashboard() {
         // Profile with Plan
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('*, plan:plan_id(name, classes_per_week)')
+          .select('*, plan:plan_id(name, classes_per_week, billing_cycle)')
           .eq('id', user.id)
           .single();
         setProfile(profileData);
@@ -47,21 +47,32 @@ export default function StudentDashboard() {
         
         setBookings(bookingsData || []);
 
-        // Weekly Count (Monday to Sunday)
+        // Cycle Count (Weekly or Monthly)
         const now = new Date();
-        const day = now.getDay();
-        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-        const monday = new Date(now.setDate(diff));
-        monday.setHours(0,0,0,0);
-        const sunday = new Date(monday);
-        sunday.setDate(monday.getDate() + 6);
-        sunday.setHours(23,59,59,999);
+        let cycleCount = 0;
+        if (profileData?.plan?.billing_cycle === 'mensal') {
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+            cycleCount = bookingsData?.filter((b: any) => {
+                const classTime = new Date(b.classes.start_time);
+                return classTime >= startOfMonth && classTime <= endOfMonth;
+            }).length || 0;
+        } else {
+            // Default: Weekly
+            const day = now.getDay();
+            const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+            const monday = new Date(now.getFullYear(), now.getMonth(), diff);
+            monday.setHours(0,0,0,0);
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            sunday.setHours(23,59,59,999);
 
-        const thisWeekCount = bookingsData?.filter((b: any) => {
-            const classTime = new Date(b.classes.start_time);
-            return classTime >= monday && classTime <= sunday;
-        }).length || 0;
-        setWeeklyBookingsCount(thisWeekCount);
+            cycleCount = bookingsData?.filter((b: any) => {
+                const classTime = new Date(b.classes.start_time);
+                return classTime >= monday && classTime <= sunday;
+            }).length || 0;
+        }
+        setWeeklyBookingsCount(cycleCount);
 
         // Find Next Class
         const future = (bookingsData || [])
@@ -137,9 +148,11 @@ export default function StudentDashboard() {
         return;
       }
 
-      // 3. Weekly Limit Check
-      if (weeklyBookingsCount >= profile.plan.classes_per_week) {
-        alert(`Você atingiu seu limite semanal de ${profile.plan.classes_per_week} aulas!`);
+      // 3. Cycle Limit Check
+      const limit = profile.plan.classes_per_week;
+      const cycleText = profile.plan.billing_cycle === 'mensal' ? 'mensal' : 'semanal';
+      if (weeklyBookingsCount >= limit) {
+        alert(`Você atingiu seu limite ${cycleText} de ${limit} aulas!`);
         return;
       }
 
@@ -253,12 +266,12 @@ export default function StudentDashboard() {
                 Olá, {firstName}!
             </h2>
             <p className="text-white/70 font-medium mt-1 uppercase text-[10px] tracking-widest">
-                {profile?.plan ? `${profile.plan.name} • ${weeklyBookingsCount}/${profile.plan.classes_per_week} na semana` : 'Sem plano ativo'}
+                {profile?.plan ? `${profile.plan.name} • ${weeklyBookingsCount}/${profile.plan.classes_per_week} no ${profile.plan.billing_cycle === 'mensal' ? 'mês' : 'semana'}` : 'Sem plano ativo'}
             </p>
           </div>
           {profile?.plan && (
               <div className="bg-white p-3 rounded-2xl shadow-lg border border-primary-container/20 min-w-[120px]">
-                  <div className="text-[10px] font-black text-primary uppercase tracking-tighter">Saldo Semanal</div>
+                  <div className="text-[10px] font-black text-primary uppercase tracking-tighter">Saldo {profile.plan.billing_cycle === 'mensal' ? 'Mensal' : 'Semanal'}</div>
                   <div className="text-xl font-headline font-black text-primary leading-none">
                       {profile.plan.classes_per_week - weeklyBookingsCount} <span className="text-[10px] opacity-60">Restantes</span>
                   </div>

@@ -10,6 +10,7 @@ interface Plan {
   tag: string;
   type: string;
   classes_per_week: number;
+  billing_cycle: 'semanal' | 'mensal';
 }
 
 export default function ManagePlans() {
@@ -17,7 +18,15 @@ export default function ManagePlans() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showNewForm, setShowNewForm] = useState(false);
-  const [newPlan, setNewPlan] = useState<Omit<Plan, 'id'>>({ name: '', price: 0, description: '', tag: '', type: 'recorrente', classes_per_week: 2 });
+  const [newPlan, setNewPlan] = useState<Omit<Plan, 'id'>>({ 
+    name: '', 
+    price: 0, 
+    description: '', 
+    tag: '', 
+    type: 'recorrente', 
+    classes_per_week: 2,
+    billing_cycle: 'semanal'
+  });
   const [successMsg, setSuccessMsg] = useState('');
 
   useEffect(() => {
@@ -52,7 +61,8 @@ export default function ManagePlans() {
           description: plan.description,
           tag: plan.tag,
           type: plan.type,
-          classes_per_week: plan.classes_per_week
+          classes_per_week: plan.classes_per_week,
+          billing_cycle: plan.billing_cycle
       }).eq('id', id);
       if (error) throw error;
       setEditingId(null);
@@ -83,7 +93,7 @@ export default function ManagePlans() {
       const { data, error } = await supabase.from('plans').insert(newPlan).select().single();
       if (error) throw error;
       setPlans(prev => [data, ...prev]);
-      setNewPlan({ name: '', price: 0, description: '', tag: '', type: 'recorrente', classes_per_week: 2 });
+      setNewPlan({ name: '', price: 0, description: '', tag: '', type: 'recorrente', classes_per_week: 2, billing_cycle: 'semanal' });
       setShowNewForm(false);
       showSuccess('Plano criado com sucesso!');
     } catch (error: any) {
@@ -125,23 +135,36 @@ export default function ManagePlans() {
             </div>
           </div>
           
-          <div>
-            <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1.5 ml-1">Check-ins Semanais</label>
-            <div className="flex gap-2">
-              <input
-                value={plan.classes_per_week >= 99 ? '' : plan.classes_per_week}
-                disabled={plan.classes_per_week >= 99}
-                onChange={e => setPlans(prev => prev.map(p => p.id === plan.id ? { ...p, classes_per_week: Number(e.target.value) } : p))}
-                type="number"
-                placeholder="Ilimitado"
-                className="w-full h-12 px-4 rounded-xl bg-surface-container border-none focus:ring-2 focus:ring-primary/30 transition-all text-on-surface font-semibold disabled:opacity-50"
-              />
-              <button 
-                onClick={() => setPlans(prev => prev.map(p => p.id === plan.id ? { ...p, classes_per_week: p.classes_per_week >= 99 ? 2 : 99 } : p))}
-                className={`px-4 rounded-xl font-bold text-[10px] uppercase transition-all ${plan.classes_per_week >= 99 ? 'bg-secondary text-white' : 'bg-surface-container text-on-surface-variant'}`}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1.5 ml-1">Qtd Aulas</label>
+              <div className="flex gap-2">
+                <input
+                  value={plan.classes_per_week >= 99 ? '' : plan.classes_per_week}
+                  disabled={plan.classes_per_week >= 99}
+                  onChange={e => setPlans(prev => prev.map(p => p.id === plan.id ? { ...p, classes_per_week: Number(e.target.value) } : p))}
+                  type="number"
+                  placeholder="Ilimitado"
+                  className="w-full h-12 px-4 rounded-xl bg-surface-container border-none focus:ring-2 focus:ring-primary/30 transition-all text-on-surface font-semibold disabled:opacity-50"
+                />
+                <button 
+                  onClick={() => setPlans(prev => prev.map(p => p.id === plan.id ? { ...p, classes_per_week: p.classes_per_week >= 99 ? 2 : 99 } : p))}
+                  className={`px-4 rounded-xl font-bold text-[10px] uppercase transition-all ${plan.classes_per_week >= 99 ? 'bg-secondary text-white' : 'bg-surface-container text-on-surface-variant'}`}
+                >
+                  {plan.classes_per_week >= 99 ? 'LIVRE' : 'LIVRE'}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1.5 ml-1">Ciclo de Renovação</label>
+              <select
+                value={plan.billing_cycle}
+                onChange={e => setPlans(prev => prev.map(p => p.id === plan.id ? { ...p, billing_cycle: e.target.value as 'semanal' | 'mensal' } : p))}
+                className="w-full h-12 px-4 rounded-xl bg-surface-container border-none focus:ring-2 focus:ring-primary/30 transition-all text-on-surface font-semibold appearance-none"
               >
-                {plan.classes_per_week >= 99 ? 'LIMITAR' : 'LIVRE'}
-              </button>
+                <option value="semanal">Semanal</option>
+                <option value="mensal">Mensal</option>
+              </select>
             </div>
           </div>
 
@@ -161,7 +184,7 @@ export default function ManagePlans() {
             </div>
             <h3 className="font-headline font-bold text-xl text-on-surface">{plan.name}</h3>
             <p className="text-on-surface-variant text-sm mt-1">
-                {plan.description || (plan.classes_per_week >= 99 ? 'Check-in Livre / Ilimitado' : `${plan.classes_per_week} aulas por semana`)}
+                {plan.description || (plan.classes_per_week >= 99 ? 'Check-in Livre / Ilimitado' : `${plan.classes_per_week} aulas por ${plan.billing_cycle === 'mensal' ? 'mês' : 'semana'}`)}
             </p>
             <p className="mt-4 text-2xl font-black text-on-surface flex items-baseline gap-1">
                 R$ {plan.price}
@@ -283,28 +306,44 @@ export default function ManagePlans() {
                             </div>
                         </div>
 
-                        <div className="p-6 bg-primary/5 rounded-[32px] border-2 border-primary/10 flex items-center justify-between">
+                        <div className="p-6 bg-primary/5 rounded-[32px] border-2 border-primary/10 space-y-4">
                             <div className="flex flex-col">
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Regra de Check-in</span>
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-1">Regra de Check-in</span>
                                 <span className="text-lg font-black text-on-surface leading-tight">
-                                    {newPlan.classes_per_week >= 99 ? 'LIVRE / ILIMITADO' : `${newPlan.classes_per_week || 0} Aulas / Semana`}
+                                    {newPlan.classes_per_week >= 99 ? 'LIVRE / ILIMITADO' : `${newPlan.classes_per_week || 0} Aulas por ${newPlan.billing_cycle === 'mensal' ? 'Mês' : 'Semana'}`}
                                 </span>
                             </div>
-                            <div className="flex gap-2">
-                                <input 
-                                    type="number" 
-                                    value={newPlan.classes_per_week >= 99 ? '' : newPlan.classes_per_week} 
-                                    disabled={newPlan.classes_per_week >= 99}
-                                    onChange={e => setNewPlan(p => ({...p, classes_per_week: Number(e.target.value)}))}
-                                    placeholder="Qtd"
-                                    className="w-16 h-12 rounded-xl border-none bg-white text-center font-black shadow-sm disabled:opacity-20"
-                                />
-                                <button 
-                                    onClick={() => setNewPlan(p => ({...p, classes_per_week: p.classes_per_week >= 99 ? 2 : 99}))}
-                                    className={`px-4 rounded-xl font-black text-[10px] uppercase tracking-tighter shadow-sm transition-all ${newPlan.classes_per_week >= 99 ? 'bg-secondary text-white' : 'bg-white text-secondary'}`}
-                                >
-                                    {newPlan.classes_per_week >= 99 ? 'LIMITAR' : 'TORNAR LIVRE'}
-                                </button>
+                            <div className="flex gap-4">
+                                <div className="flex-1">
+                                    <label className="text-[9px] font-bold text-on-surface-variant/60 uppercase tracking-widest pl-1 mb-1 block">Quantidade</label>
+                                    <div className="flex gap-2">
+                                        <input 
+                                            type="number" 
+                                            value={newPlan.classes_per_week >= 99 ? '' : newPlan.classes_per_week} 
+                                            disabled={newPlan.classes_per_week >= 99}
+                                            onChange={e => setNewPlan(p => ({...p, classes_per_week: Number(e.target.value)}))}
+                                            placeholder="Qtd"
+                                            className="w-20 h-14 rounded-2xl border-none bg-white text-center font-black shadow-sm disabled:opacity-20"
+                                        />
+                                        <button 
+                                            onClick={() => setNewPlan(p => ({...p, classes_per_week: p.classes_per_week >= 99 ? 2 : 99}))}
+                                            className={`px-4 rounded-xl font-black text-[10px] uppercase tracking-tighter shadow-sm transition-all ${newPlan.classes_per_week >= 99 ? 'bg-secondary text-white' : 'bg-white text-secondary'}`}
+                                        >
+                                            {newPlan.classes_per_week >= 99 ? 'LIMITAR' : 'TORNAR LIVRE'}
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="w-[140px]">
+                                    <label className="text-[9px] font-bold text-on-surface-variant/60 uppercase tracking-widest pl-1 mb-1 block">Renovação</label>
+                                    <select
+                                        value={newPlan.billing_cycle}
+                                        onChange={e => setNewPlan(p => ({...p, billing_cycle: e.target.value as 'semanal' | 'mensal'}))}
+                                        className="w-full h-14 px-4 rounded-2xl border-none bg-white font-black shadow-sm appearance-none"
+                                    >
+                                        <option value="semanal">Semanal</option>
+                                        <option value="mensal">Mensal</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
