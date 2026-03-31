@@ -56,12 +56,14 @@ export default function CourtBooking() {
       try {
         setSearching(true);
         const { data: { user } } = await supabase.auth.getUser();
+        
+        // Busca fuzzy por nome (ilike com % no início e fim)
         const { data } = await supabase
             .from('profiles')
             .select('id, full_name, avatar_url')
             .ilike('full_name', `%${searchTerm}%`)
-            .neq('id', user?.id) // Don't search for self
-            .limit(5);
+            .neq('id', user?.id) // Não buscar a si mesmo
+            .limit(6);
         setSearchResults(data || []);
       } catch (error) {
           console.error(error);
@@ -209,47 +211,53 @@ export default function CourtBooking() {
                 <div className="relative">
                     <input 
                         type="text" 
-                        placeholder="Buscar aluno pelo nome..."
+                        placeholder="Nome dos parceiros (ex: Felipe)..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full h-14 bg-white rounded-2xl px-6 border border-primary-container/10 shadow-sm font-bold text-sm focus:ring-2 focus:ring-secondary/20 focus:border-secondary transition-all"
                     />
-                    {searching && (
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                        {searching ? (
                             <div className="w-5 h-5 border-2 border-secondary/20 border-t-secondary rounded-full animate-spin"></div>
-                        </div>
-                    )}
-                </div>
+                        ) : searchTerm.length > 0 ? (
+                            <button onClick={() => setSearchTerm('')} className="text-on-surface-variant/40 hover:text-secondary">
+                                <span className="material-symbols-outlined text-lg">close</span>
+                            </button>
+                        ) : (
+                            <span className="material-symbols-outlined text-secondary/40 text-lg">search</span>
+                        )}
+                    </div>
 
-                {/* Search Results Dropdown */}
-                <AnimatePresence>
-                    {searchResults.length > 0 && (
-                        <motion.div 
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            className="bg-white rounded-2xl shadow-xl border border-primary-container/10 overflow-hidden absolute w-[calc(100%-48px)] z-20 mt-1"
-                        >
-                            {searchResults.map(p => (
-                                <button 
-                                    key={p.id}
-                                    onClick={() => addParticipant(p)}
-                                    className="w-full p-4 flex items-center gap-3 hover:bg-surface transition-colors border-b border-surface-container last:border-none"
-                                >
-                                    <div className="w-10 h-10 rounded-full overflow-hidden bg-primary/10">
-                                        {p.avatar_url ? (
-                                            <img src={p.avatar_url} alt={p.full_name} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-primary font-bold text-xs uppercase">{p.full_name.charAt(0)}</div>
-                                        )}
-                                    </div>
-                                    <span className="font-bold text-sm text-on-surface">{p.full_name}</span>
-                                    <span className="material-symbols-outlined ml-auto text-secondary text-sm">add_circle</span>
-                                </button>
-                            ))}
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                    {/* Search Results Dropdown - Now inside Relative for alignment */}
+                    <AnimatePresence>
+                        {searchResults.length > 0 && (
+                            <motion.div 
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="bg-white rounded-2xl shadow-2xl border border-primary-container/10 overflow-hidden absolute w-full left-0 z-[100] mt-2 ring-1 ring-black/5"
+                            >
+                                {searchResults.map(p => (
+                                    <button 
+                                        key={p.id}
+                                        onClick={() => addParticipant(p)}
+                                        className="w-full p-4 flex items-center gap-3 hover:bg-surface transition-colors border-b border-surface-container last:border-none group text-left"
+                                    >
+                                        <div className="w-10 h-10 rounded-full overflow-hidden bg-primary/10 shrink-0">
+                                            {p.avatar_url ? (
+                                                <img src={p.avatar_url} alt="" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-primary font-bold text-xs uppercase">{p.full_name.charAt(0)}</div>
+                                            )}
+                                        </div>
+                                        <span className="font-bold text-sm text-on-surface group-hover:text-secondary">{p.full_name}</span>
+                                        <span className="material-symbols-outlined ml-auto text-secondary/40 group-hover:text-secondary text-sm">add_circle</span>
+                                    </button>
+                                ))}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
               </div>
 
               {/* Selected Chips */}
