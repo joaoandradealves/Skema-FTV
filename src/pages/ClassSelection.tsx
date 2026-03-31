@@ -13,6 +13,7 @@ export default function ClassSelection() {
   const [bookingLoading, setBookingLoading] = useState<string | null>(null);
   const [profile, setProfile] = useState<any>(null);
   const [weeklyBookingsCount, setWeeklyBookingsCount] = useState(0);
+  const [bookedClassIds, setBookedClassIds] = useState<string[]>([]);
 
   useEffect(() => {
     fetchProfileAndData();
@@ -65,11 +66,14 @@ export default function ClassSelection() {
 
       const { data: weeklyBookings } = await supabase
         .from('bookings')
-        .select('*, class:class_id(start_time)')
+        .select('*, class:class_id(start_time, id)')
         .eq('student_id', user.id)
         .neq('status', 'cancelado');
 
-      // Filter only those where class start_time is this week
+      // 1. Set Booked Class IDs
+      setBookedClassIds(weeklyBookings?.map(b => b.class.id) || []);
+
+      // 2. Filter only those where class start_time is this week
       const thisWeekCount = weeklyBookings?.filter(b => {
           const classTime = new Date(b.class.start_time);
           return classTime >= monday && classTime <= sunday;
@@ -226,6 +230,8 @@ export default function ClassSelection() {
                 const isLocked = hoursDiff > 48;
                 const isFull = (cls.bookings[0]?.count || 0) >= cls.capacity;
 
+                 const isBooked = bookedClassIds.includes(cls.id);
+
                 return (
                   <div key={cls.id} className="bg-white p-6 rounded-[32px] border-2 border-primary-container/10 shadow-sm transition-all group overflow-hidden relative">
                     <div className="flex items-center justify-between relative z-10">
@@ -255,15 +261,15 @@ export default function ClassSelection() {
 
                       <button 
                         onClick={() => handleBooking(cls)}
-                        disabled={bookingLoading === cls.id || isFull || isLocked || profile?.plan_status !== 'ativo'}
+                        disabled={bookingLoading === cls.id || isFull || isLocked || profile?.plan_status !== 'ativo' || isBooked}
                         className={`h-14 px-8 rounded-2xl font-headline font-extrabold text-xs uppercase tracking-widest transition-all shadow-lg active:scale-95
-                          ${isFull || isLocked || profile?.plan_status !== 'ativo'
+                          ${isFull || isLocked || profile?.plan_status !== 'ativo' || isBooked
                             ? 'bg-surface-container-highest text-on-surface-variant/30 cursor-not-allowed shadow-none'
                             : 'bg-secondary text-white hover:bg-secondary/90'
                           }
                         `}
                       >
-                        {isLocked ? 'Em 48h' : isFull ? 'Lotado' : (bookingLoading === cls.id ? '...' : 'Check-in')}
+                        {isBooked ? 'Agendado' : isLocked ? 'Em 48h' : isFull ? 'Lotado' : (bookingLoading === cls.id ? '...' : 'Check-in')}
                       </button>
                     </div>
                   </div>
