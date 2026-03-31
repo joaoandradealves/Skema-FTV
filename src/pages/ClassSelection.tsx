@@ -157,7 +157,12 @@ export default function ClassSelection() {
       {/* Background Decorative Elements */}
       <div className="absolute -top-10 -right-10 w-40 h-40 bg-secondary/10 rounded-full blur-3xl pointer-events-none"></div>
       
-      <TopAppBar title="CHECK-IN" showBackButton />
+      <TopAppBar 
+        title="CHECK-IN" 
+        showBackButton 
+        avatarSrc={profile?.avatar_url} 
+        avatarAlt={profile?.full_name} 
+      />
 
       <main className="mt-20 px-6 max-w-2xl mx-auto space-y-8 relative z-10">
         {/* Profile Status */}
@@ -232,6 +237,7 @@ export default function ClassSelection() {
                           <div>
                             <p className="text-[10px] font-extrabold text-secondary uppercase tracking-[0.15em] mb-0.5">{cls.court}</p>
                             <h4 className="font-headline font-black text-xl text-on-surface leading-tight tracking-tight">{cls.name}</h4>
+                            <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mt-1">Prof. {cls.teacher?.full_name || 'Skema'}</p>
                           </div>
                         </div>
                         

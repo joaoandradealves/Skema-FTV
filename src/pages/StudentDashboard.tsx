@@ -97,7 +97,7 @@ export default function StudentDashboard() {
 
         const { data } = await supabase
           .from('classes')
-          .select('*')
+          .select('*, teacher:teacher_id(full_name)')
           .gte('start_time', start.toISOString())
           .lte('start_time', end.toISOString())
           .order('start_time', { ascending: true });
@@ -227,7 +227,7 @@ export default function StudentDashboard() {
       <div className="pb-32 min-h-screen font-body relative">
       <TopAppBar
         title="SKEMA BEACH CLUB"
-        avatarSrc={profile?.avatar_url || undefined}
+        avatarSrc={profile?.avatar_url}
         avatarAlt={profile?.full_name || "Perfil"}
       />
 
@@ -361,7 +361,7 @@ export default function StudentDashboard() {
                         </div>
                         <div>
                             <h5 className="font-headline font-bold text-on-surface">{new Date(cls.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} • {cls.name}</h5>
-                            <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter">{cls.court} • Prof. {cls.teacher_name || 'Skema'}</p>
+                            <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter">{cls.court} • Prof. {cls.teacher?.full_name || 'Skema'}</p>
                         </div>
                     </div>
                     {isBooked ? (

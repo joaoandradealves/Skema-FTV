@@ -8,14 +8,14 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
 
   const menuItems = [
-    { title: 'Gestão de Professores', icon: 'badge', path: '/manage-teachers', color: 'bg-primary' },
-    { title: 'Gestão de Planos', icon: 'payments', path: '/manage-plans', color: 'bg-secondary' },
+    { title: 'Gestão de Alunos', icon: 'groups', path: '/admin/students', color: 'bg-primary' },
+    { title: 'Dashboard & Métricas', icon: 'analytics', path: '/admin/analytics', color: 'bg-secondary' },
     { title: 'Aprovações Pendentes', icon: 'how_to_reg', path: '/admin/approvals', color: 'bg-primary-container' },
     { title: 'Gestão de Lazer', icon: 'stadium', path: '/admin/leisure', color: 'bg-secondary' },
     { title: 'Prêmios (Fidelidade)', icon: 'redeem', path: '/admin/loyalty', color: 'bg-primary' },
     { title: 'Caixa (Resgate)', icon: 'point_of_sale', path: '/admin/cashier', color: 'bg-secondary' },
-    { title: 'Gestão de Eventos', icon: 'event', path: '/admin', color: 'bg-tertiary' },
-    { title: 'Relatórios Gerais', icon: 'analytics', path: '/admin', color: 'bg-on-surface-variant/20' },
+    { title: 'Gestão de Professores', icon: 'badge', path: '/manage-teachers', color: 'bg-primary' },
+    { title: 'Gestão de Planos', icon: 'payments', path: '/manage-plans', color: 'bg-secondary' },
   ];
 
   async function handleLogout() {
