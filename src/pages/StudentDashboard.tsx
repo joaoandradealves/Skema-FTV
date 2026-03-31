@@ -182,19 +182,33 @@ export default function StudentDashboard() {
   }
 
   async function handleCancel(bookingId: string, startTime: string) {
-    const now = new Date();
-    const classTime = new Date(startTime);
-    const hoursDiff = (classTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+    try {
+      const now = new Date();
+      const classTime = new Date(startTime);
+      const diffInMs = classTime.getTime() - now.getTime();
+      const hoursDiff = diffInMs / (1000 * 60 * 60);
 
-    if (hoursDiff < 2) {
-        alert('Você só pode cancelar com até 2 horas de antecedência! Entre em contato com o suporte se necessário.');
-        return;
-    }
+      // Buffer de 5 minutos para erros de fuso horário de milissegundos
+      if (hoursDiff < 1.9) { 
+          alert('Limite para cancelamento: Você só pode cancelar com até 2 horas de antecedência! Entre em contato com o suporte se necessário.');
+          return;
+      }
 
-    if (confirm('Deseja realmente cancelar este agendamento?')) {
-        const { error } = await supabase.from('bookings').update({ status: 'cancelado' }).eq('id', bookingId);
-        if (error) alert(error.message);
-        else window.location.reload();
+      if (confirm('Deseja realmente cancelar este agendamento?')) {
+          const { error } = await supabase
+            .from('bookings')
+            .update({ status: 'cancelado' })
+            .eq('id', bookingId)
+            .select(); // Força o retorno para garantir que deu certo
+
+          if (error) throw error;
+          
+          alert('Cancelamento realizado! Seus pontos foram estornados.');
+          window.location.reload();
+      }
+    } catch (error: any) {
+      console.error('Erro ao cancelar:', error);
+      alert(`Erro no cancelamento: ${error.message || 'Verifique sua conexão'}`);
     }
   }
 
