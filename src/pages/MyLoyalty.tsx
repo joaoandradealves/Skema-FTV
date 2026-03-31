@@ -4,6 +4,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import TopAppBar from '../components/TopAppBar';
 import WavyBackground from '../components/WavyBackground';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Reward {
     id: string;
@@ -22,6 +23,7 @@ export default function MyLoyalty() {
     const [redemptionId, setRedemptionId] = useState<string | null>(null);
     const [showQR, setShowQR] = useState(false);
     const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
+    const [activeTier, setActiveTier] = useState<number | null>(null);
 
     useEffect(() => {
         fetchData();
@@ -52,7 +54,6 @@ export default function MyLoyalty() {
                     .single();
                 
                 if (data?.status === 'redeemed') {
-                    alert('Resgate realizado com sucesso! Aproveite seu prêmio! 🎁');
                     setShowQR(false);
                     setRedemptionId(null);
                     fetchData(); // Refresh points
@@ -68,7 +69,6 @@ export default function MyLoyalty() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return navigate('/');
 
-            // Points
             const { data: pointsData } = await supabase
                 .from('loyalty_points')
                 .select('balance')
@@ -76,7 +76,6 @@ export default function MyLoyalty() {
                 .single();
             setPoints(pointsData?.balance || 0);
 
-            // Rewards
             const { data: rewardsData } = await supabase
                 .from('loyalty_rewards')
                 .select('*')
@@ -124,67 +123,109 @@ export default function MyLoyalty() {
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
+    // Get unique tiers from rewards
+    const tiers = Array.from(new Set(rewards.map(r => r.points_cost))).sort((a,b) => a-b);
+    
+    const filteredRewards = activeTier 
+        ? rewards.filter(r => r.points_cost <= activeTier)
+        : rewards;
+
     return (
-        <WavyBackground topHeight="25%" bgColor="bg-[#1A1A1A]" dividerColor="fill-[#1A1A1A]">
-            <div className="bg-[#1A1A1A] text-white min-h-screen pb-32 font-body selection:bg-[#D4AF37]/30">
-                <TopAppBar title="MEU SKEMA POINTS" showBackButton />
+        <WavyBackground topHeight="25%" bgColor="bg-surface" dividerColor="fill-surface">
+            <div className="bg-surface text-on-surface min-h-screen pb-32 font-body selection:bg-primary/20">
+                <TopAppBar title="SKEMA POINTS" showBackButton />
 
-                <main className="mt-20 px-6 max-w-2xl mx-auto space-y-8 relative z-10">
-                    {/* Points Card */}
-                    <section className="bg-gradient-to-br from-[#D4AF37] to-[#AA8B2E] p-8 rounded-[40px] shadow-2xl relative overflow-hidden">
-                        <div className="absolute -right-8 -bottom-8 opacity-20 transform rotate-12">
-                            <span className="material-symbols-outlined text-[150px] text-black">workspace_premium</span>
+                <main className="mt-20 relative z-10">
+                    {/* Points Summary - McDonald's Style */}
+                    <header className="px-6 pb-4 space-y-1">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-4xl font-black text-on-surface tracking-tight">
+                                {points.toLocaleString('pt-BR')} <span className="text-primary text-xl">pts.</span>
+                            </h2>
+                            <button className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-1">
+                                Extrato <span className="material-symbols-outlined text-sm">chevron_right</span>
+                            </button>
                         </div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-black/60 mb-2">Seu Saldo Atual</p>
-                        <div className="flex items-baseline gap-2">
-                           <h2 className="text-6xl font-black text-black leading-none">{points}</h2>
-                           <span className="text-black font-bold uppercase text-xs tracking-widest">Pontos</span>
-                        </div>
-                    </section>
+                    </header>
 
-                    <section className="space-y-4">
-                        <h3 className="font-headline text-2xl font-black tracking-tight text-[#D4AF37] uppercase ml-2">Prêmios Disponíveis</h3>
-                        
+                    {/* Tier Filters - McDonald's Horizontal Scroll */}
+                    <nav className="flex overflow-x-auto px-6 py-4 gap-3 no-scrollbar scroll-smooth">
+                        <button 
+                            onClick={() => setActiveTier(null)}
+                            className={`px-4 py-2 rounded-full font-black text-[10px] uppercase tracking-widest whitespace-nowrap transition-all border-2
+                                ${activeTier === null ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-white text-on-surface-variant border-surface-container-highest'}
+                            `}
+                        >
+                            Todos
+                        </button>
+                        {tiers.map(tier => (
+                            <button 
+                                key={tier}
+                                onClick={() => setActiveTier(tier)}
+                                className={`px-4 py-2 rounded-full font-black text-[10px] uppercase tracking-widest whitespace-nowrap transition-all border-2
+                                    ${activeTier === tier ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-white text-on-surface-variant border-surface-container-highest'}
+                                `}
+                            >
+                                Até {tier.toLocaleString('pt-BR')} pts
+                            </button>
+                        ))}
+                    </nav>
+
+                    {/* Rewards Grid */}
+                    <section className="px-6 pt-2">
                         {loading ? (
-                             <div className="py-10 text-center opacity-30 animate-pulse font-black text-xs uppercase tracking-widest">Carregando catálogo...</div>
+                             <div className="py-20 text-center opacity-30 animate-pulse font-black text-[10px] uppercase tracking-[0.3em]">Carregando catálogo...</div>
                         ) : (
-                            <div className="grid grid-cols-1 gap-4">
-                                {rewards.map(reward => {
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-8">
+                                {filteredRewards.map(reward => {
                                     const canAfford = points >= reward.points_cost;
                                     return (
-                                        <div 
+                                        <motion.div 
+                                            layout
                                             key={reward.id} 
-                                            className={`p-6 rounded-[32px] border-2 flex items-center justify-between transition-all active:scale-95
-                                                ${canAfford 
-                                                    ? 'bg-white/5 border-[#D4AF37]/20 hover:border-[#D4AF37]/50' 
-                                                    : 'bg-white/5 border-transparent opacity-40 grayscale-0'
-                                                }
-                                            `}
+                                            onClick={() => canAfford && handleGenerateCoupon(reward)}
+                                            className="flex flex-col items-center space-y-4 group cursor-pointer"
                                         >
-                                            <div className="flex items-center gap-4">
-                                                <div className={`w-14 h-14 ${canAfford ? 'bg-[#D4AF37]/20 text-[#D4AF37]' : 'bg-white/10 text-white/30'} rounded-2xl flex items-center justify-center`}>
-                                                    <span className="material-symbols-outlined text-3xl font-bold">redeem</span>
+                                            {/* Card Container */}
+                                            <div className="relative w-full aspect-square bg-white rounded-[40px] shadow-sm border border-surface-container-highest flex items-center justify-center p-6 overflow-hidden transition-all group-active:scale-95 shadow-lg shadow-black/5">
+                                                {/* Points Tag - Yellow Pill at Top */}
+                                                <div className={`absolute top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full flex items-center justify-center gap-1 z-10 shadow-sm
+                                                    ${canAfford ? 'bg-[#FFD700] text-black' : 'bg-surface-container-highest text-on-surface-variant/40'}
+                                                `}>
+                                                    {!canAfford && <span className="material-symbols-outlined text-[10px] font-black">lock</span>}
+                                                    <span className="text-[10px] font-black uppercase tracking-tighter tabular-nums">
+                                                        {reward.points_cost.toLocaleString('pt-BR')} pts
+                                                    </span>
                                                 </div>
-                                                <div className="text-left">
-                                                    <h4 className="font-headline font-black text-xl leading-tight">{reward.name}</h4>
-                                                    <p className={`text-[10px] font-black uppercase tracking-[0.15em] ${canAfford ? 'text-[#D4AF37]' : 'text-white/40'}`}>
-                                                        {reward.points_cost} PONTOS
-                                                    </p>
+
+                                                {/* Halo & Image */}
+                                                <div className="relative w-full h-full flex items-center justify-center">
+                                                    {/* Decorative Halo inspired by McDonalds screenshot */}
+                                                    <div className={`absolute w-[120%] h-[120%] rounded-full opacity-10 transition-transform duration-500 group-hover:scale-110
+                                                        ${canAfford ? 'bg-primary border-[1.5px] border-primary' : 'bg-on-surface-variant/20 border-on-surface-variant/20'}
+                                                    `} style={{ clipPath: 'path("M 0 50 A 50 50 0 1 1 100 50")' }}></div>
+
+                                                    <div className={`w-full h-full flex items-center justify-center transition-all duration-300 ${!canAfford ? 'grayscale opacity-30' : 'group-hover:scale-110'}`}>
+                                                        {reward.image_url ? (
+                                                            <img 
+                                                                src={reward.image_url} 
+                                                                alt={reward.name} 
+                                                                className="w-full h-full object-contain drop-shadow-xl" 
+                                                            />
+                                                        ) : (
+                                                            <span className="material-symbols-outlined text-6xl text-primary/20">redeem</span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <button 
-                                                disabled={!canAfford}
-                                                onClick={() => handleGenerateCoupon(reward)}
-                                                className={`px-4 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all
-                                                    ${canAfford 
-                                                        ? 'bg-[#D4AF37] text-black shadow-lg shadow-[#D4AF37]/20 active:bg-[#B8962D]' 
-                                                        : 'bg-white/10 text-white/30'
-                                                    }
-                                                `}
-                                            >
-                                                RESGATAR
-                                            </button>
-                                        </div>
+
+                                            {/* Title Below Card */}
+                                            <p className={`text-[11px] font-black text-center leading-tight uppercase tracking-widest px-2 transition-colors
+                                                ${canAfford ? 'text-on-surface' : 'text-on-surface-variant/40'}
+                                            `}>
+                                                {reward.name}
+                                            </p>
+                                        </motion.div>
                                     );
                                 })}
                             </div>
@@ -192,40 +233,57 @@ export default function MyLoyalty() {
                     </section>
                 </main>
 
-                {/* QR Modal */}
-                {showQR && selectedReward && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
-                        <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={() => setShowQR(false)}></div>
-                        <div className="bg-[#1A1A1A] border-2 border-[#D4AF37]/50 w-full max-w-sm rounded-[40px] p-8 shadow-[0_0_50px_rgba(212,175,55,0.2)] animate-in zoom-in-95 duration-200 relative z-10 text-center space-y-6">
-                            <div className="space-y-2">
-                                <h3 className="font-headline font-black text-2xl text-[#D4AF37] uppercase">Resgate Liberado!</h3>
-                                <p className="text-white/60 text-xs font-medium uppercase tracking-widest">Prêmio: {selectedReward.name}</p>
-                            </div>
-
-                            <div className="bg-white p-4 rounded-3xl inline-block shadow-inner mx-auto">
-                                <QRCodeSVG value={redemptionId || ''} size={200} />
-                            </div>
-
-                            <div className="space-y-4">
-                                <div className="space-y-1">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Válido por:</p>
-                                    <p className="text-3xl font-black text-[#D4AF37] tabular-nums">{formatTime(timeLeft)}</p>
+                {/* QR Modal - McDonald's Style Light Theme */}
+                <AnimatePresence>
+                    {showQR && selectedReward && (
+                        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center px-0 sm:px-6">
+                            <motion.div 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute inset-0 bg-on-background/80 backdrop-blur-md" 
+                                onClick={() => setShowQR(false)}
+                            ></motion.div>
+                            
+                            <motion.div 
+                                initial={{ y: '100%' }}
+                                animate={{ y: 0 }}
+                                exit={{ y: '100%' }}
+                                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                                className="bg-surface w-full max-w-sm rounded-t-[50px] sm:rounded-[50px] p-8 shadow-2xl relative z-10 text-center space-y-6"
+                            >
+                                <div className="space-y-2">
+                                    <h3 className="font-headline font-black text-3xl text-on-surface uppercase tracking-tight">Cupom Gerado! 🏆</h3>
+                                    <p className="text-on-surface-variant text-[10px] font-black uppercase tracking-[0.2em]">{selectedReward.name}</p>
                                 </div>
-                                <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
-                                    <p className="text-[10px] font-bold text-white/50 leading-relaxed uppercase tracking-widest">
-                                        ⏱️ Apresente este QR Code no caixa em até 10 minutos para retirar seu prêmio.
-                                    </p>
+
+                                <div className="bg-white p-6 rounded-[40px] inline-block shadow-inner mx-auto border border-surface-container-highest">
+                                    <QRCodeSVG value={redemptionId || ''} size={200} />
                                 </div>
-                                <button 
-                                    onClick={() => setShowQR(false)}
-                                    className="w-full bg-white/10 hover:bg-white/20 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all"
-                                >
-                                    FECHAR
-                                </button>
-                            </div>
+
+                                <div className="space-y-6">
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/40">Válido por:</p>
+                                        <p className="text-4xl font-black text-primary tabular-nums tracking-tighter">{formatTime(timeLeft)}</p>
+                                    </div>
+                                    
+                                    <div className="p-5 bg-primary/10 rounded-3xl border border-primary/20">
+                                        <p className="text-[10px] font-bold text-primary leading-relaxed uppercase tracking-widest">
+                                            Apresente este QR Code no caixa em até 10 minutos para retirar seu prêmio.
+                                        </p>
+                                    </div>
+
+                                    <button 
+                                        onClick={() => setShowQR(false)}
+                                        className="w-full h-16 bg-on-surface text-surface rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all"
+                                    >
+                                        ENTENDI
+                                    </button>
+                                </div>
+                            </motion.div>
                         </div>
-                    </div>
-                )}
+                    )}
+                </AnimatePresence>
             </div>
         </WavyBackground>
     );
