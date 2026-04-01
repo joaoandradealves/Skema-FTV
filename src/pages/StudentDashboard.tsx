@@ -373,22 +373,29 @@ export default function StudentDashboard() {
                 <Link to="/book-class" className="text-[10px] font-black text-secondary flex items-center gap-1 uppercase tracking-widest">Explorar Tudo <span className="material-symbols-outlined text-sm">chevron_right</span></Link>
               </div>
               <div className="space-y-3">
-                {dayClasses.map(cls => (
-                    <div key={cls.id} className="bg-white p-5 rounded-[28px] border border-primary-container/10 shadow-sm flex items-center justify-between group">
-                        <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all">
-                                <span className="material-symbols-outlined text-sm">schedule</span>
+                {dayClasses.map(cls => {
+                    const isPast = new Date(cls.start_time) < new Date();
+                    return (
+                        <div key={cls.id} className={`bg-white p-5 rounded-[28px] border border-primary-container/10 shadow-sm flex items-center justify-between group transition-all ${isPast ? 'opacity-40 grayscale-[0.6]' : ''}`}>
+                            <div className="flex items-center gap-4">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${isPast ? 'bg-surface-container-highest text-on-surface-variant/40' : 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white'}`}>
+                                    <span className="material-symbols-outlined text-sm">schedule</span>
+                                </div>
+                                <div>
+                                    <h5 className={`font-headline font-bold text-sm uppercase leading-none ${isPast ? 'text-on-surface-variant/40' : 'text-on-surface'}`}>{new Date(cls.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} • {cls.name}</h5>
+                                    <p className="text-[9px] font-bold text-on-surface-variant uppercase mt-1">{cls.court} • {cls.teacher?.full_name}</p>
+                                </div>
                             </div>
-                            <div>
-                                <h5 className="font-headline font-bold text-on-surface text-sm uppercase leading-none">{new Date(cls.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} • {cls.name}</h5>
-                                <p className="text-[9px] font-bold text-on-surface-variant uppercase mt-1">{cls.court} • {cls.teacher?.full_name}</p>
-                            </div>
+                            <button 
+                                onClick={() => !isPast && handleBooking(cls)} 
+                                disabled={isPast || bookingLoading === cls.id} 
+                                className={`h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md transition-all ${isPast ? 'bg-surface-container-highest text-on-surface-variant/40 cursor-not-allowed shadow-none' : 'bg-primary text-white active:scale-95'}`}
+                            >
+                                {bookingLoading === cls.id ? '...' : (isPast ? 'Encerrado' : 'Check-in')}
+                            </button>
                         </div>
-                        <button onClick={() => handleBooking(cls)} disabled={bookingLoading === cls.id} className="h-10 px-4 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md active:scale-95 transition-all">
-                            {bookingLoading === cls.id ? '...' : 'Check-in'}
-                        </button>
-                    </div>
-                ))}
+                    );
+                })}
               </div>
             </div>
           </section>
