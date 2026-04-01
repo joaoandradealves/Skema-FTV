@@ -19,6 +19,10 @@ export default function StudentDashboard() {
   const [bookingLoading, setBookingLoading] = useState<string | null>(null);
   const [loyaltyPoints, setLoyaltyPoints] = useState<number>(0);
 
+  // Roster State
+  const [roster, setRoster] = useState<{ className: string, students: any[] } | null>(null);
+  const [loadingRoster, setLoadingRoster] = useState(false);
+
   // Rental Management States
   const [selectedRental, setSelectedRental] = useState<any>(null);
   const [rentalParticipants, setRentalParticipants] = useState<any[]>([]);
@@ -112,6 +116,37 @@ export default function StudentDashboard() {
     }
     fetchDayClasses();
   }, [selectedDate, bookings]); // Adicionado 'bookings' para atualizar o contador após cancelamento
+
+  async function fetchRoster(cls: any) {
+    try {
+        setLoadingRoster(true);
+        setRoster({ className: cls.name, students: [] }); // Set title immediately
+        
+        const { data, error } = await supabase
+            .from('bookings')
+            .select(`
+                profiles:student_id (
+                    full_name,
+                    avatar_url
+                )
+            `)
+            .eq('class_id', cls.id)
+            .neq('status', 'cancelado');
+
+        if (error) throw error;
+        
+        const students = data?.map((b: any) => ({
+            full_name: b.profiles.full_name,
+            avatar_url: b.profiles.avatar_url
+        })) || [];
+
+        setRoster({ className: cls.name, students });
+    } catch (error: any) {
+        alert('Erro ao carregar lista: ' + error.message);
+    } finally {
+        setLoadingRoster(false);
+    }
+  }
 
   // Rental Management
   async function openRentalModal(rental: any) {
@@ -503,15 +538,25 @@ export default function StudentDashboard() {
                     const isBooked = bookings.some(b => b.classes.id === cls.id && b.status === 'agendado');
                     return (
                         <div key={cls.id} className={`bg-white p-5 rounded-[28px] border border-primary-container/10 shadow-sm flex items-center justify-between group transition-all ${isPast ? 'opacity-40 grayscale-[0.6]' : ''}`}>
-                            <div className="flex items-center gap-4">
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${isPast ? 'bg-surface-container-highest text-on-surface-variant/40' : 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white'}`}>
-                                    <span className="material-symbols-outlined text-sm">schedule</span>
+                                <div 
+                                    onClick={() => fetchRoster(cls)}
+                                    className="cursor-pointer group flex items-center gap-4"
+                                >
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${isPast ? 'bg-surface-container-highest text-on-surface-variant/40' : 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white'}`}>
+                                        <span className="material-symbols-outlined text-sm">groups</span>
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <h5 className={`font-headline font-bold text-sm uppercase leading-none ${isPast ? 'text-on-surface-variant/40' : 'text-on-surface'}`}>{new Date(cls.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} • {cls.name}</h5>
+                                            {(cls.bookings || []).filter((b: any) => b.status === 'agendado').length > 0 && (
+                                                <span className="text-[9px] font-black bg-secondary/10 text-secondary px-1.5 py-0.5 rounded-md">
+                                                    {(cls.bookings || []).filter((b: any) => b.status === 'agendado').length}/{cls.capacity || 8}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="text-[9px] font-bold text-on-surface-variant uppercase mt-1">{cls.court} • {cls.teacher?.full_name}</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h5 className={`font-headline font-bold text-sm uppercase leading-none ${isPast ? 'text-on-surface-variant/40' : 'text-on-surface'}`}>{new Date(cls.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} • {cls.name}</h5>
-                                    <p className="text-[9px] font-bold text-on-surface-variant uppercase mt-1">{cls.court} • {cls.teacher?.full_name}</p>
-                                </div>
-                            </div>
                             <button 
                                 onClick={() => !isPast && !isBooked && handleBooking(cls)} 
                                 disabled={isPast || bookingLoading === cls.id || isBooked} 
@@ -607,6 +652,68 @@ export default function StudentDashboard() {
         </AnimatePresence>
 
         <StudentNavbar activePage="home" />
+
+        {/* Modal: Roster View (Quem vai treinar) */}
+        <AnimatePresence>
+            {roster && (
+                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setRoster(null)}
+                        className="absolute inset-0 bg-secondary/40 backdrop-blur-md"
+                    />
+                    <motion.div 
+                        initial={{ y: '100%', opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: '100%', opacity: 0 }}
+                        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                        className="relative bg-white w-full max-w-sm rounded-[40px] p-8 shadow-2xl space-y-6 overflow-hidden"
+                    >
+                        <div className="text-center space-y-1">
+                            <div className="w-12 h-1.5 bg-surface-container rounded-full mx-auto mb-4 opacity-20" />
+                            <h3 className="font-headline font-black text-2xl text-on-surface tracking-tight uppercase leading-none">QUEM VAI TREINAR? 🏐</h3>
+                            <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">{roster.className}</p>
+                        </div>
+
+                        <div className="max-h-[40vh] overflow-y-auto pr-2 space-y-3 custom-scrollbar min-h-[100px]">
+                            {loadingRoster ? (
+                                <div className="py-10 text-center animate-pulse text-[10px] font-black uppercase tracking-widest text-on-surface-variant/40">Chamando a turma...</div>
+                            ) : roster.students.length > 0 ? (
+                                roster.students.map((student: any, idx: number) => (
+                                    <motion.div 
+                                        initial={{ opacity: 0, x: -10 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: idx * 0.05 }}
+                                        key={idx} 
+                                        className="bg-surface p-4 rounded-3xl border border-primary-container/10 flex items-center gap-4 shadow-sm"
+                                    >
+                                        <div className="w-12 h-12 bg-primary/10 rounded-2xl overflow-hidden border border-primary/5 flex items-center justify-center">
+                                            {student.avatar_url ? (
+                                                <img src={student.avatar_url} alt={student.full_name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span className="material-symbols-outlined text-primary/30">person</span>
+                                            )}
+                                        </div>
+                                        <span className="font-headline font-black text-sm text-on-surface uppercase tracking-tight">{student.full_name}</span>
+                                    </motion.div>
+                                ))
+                            ) : (
+                                <div className="py-10 text-center text-on-surface-variant/40 font-medium italic text-xs px-10">Ninguém agendado ainda. Seja o primeiro! 🎾</div>
+                            )}
+                        </div>
+
+                        <button 
+                            onClick={() => setRoster(null)}
+                            className="w-full h-16 bg-secondary text-white rounded-[24px] font-black text-xs uppercase tracking-widest shadow-lg shadow-secondary/20 active:scale-95 transition-all"
+                        >
+                            FECHAR
+                        </button>
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
       </div>
     </WavyBackground>
   );

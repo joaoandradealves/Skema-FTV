@@ -54,7 +54,7 @@ export default function ClassSelection() {
         .select(`
           *,
           teacher:teacher_id (full_name),
-          bookings:bookings(status)
+          bookings(status)
         `)
         .gte('start_time', startOfDay.toISOString())
         .lte('start_time', endOfDay.toISOString())
@@ -114,7 +114,7 @@ export default function ClassSelection() {
         const { data, error } = await supabase
             .from('bookings')
             .select(`
-                profile:student_id (
+                profiles:student_id (
                     full_name,
                     avatar_url
                 )
@@ -125,8 +125,8 @@ export default function ClassSelection() {
         if (error) throw error;
         
         const students = data?.map((b: any) => ({
-            full_name: b.profile.full_name,
-            avatar_url: b.profile.avatar_url
+            full_name: b.profiles.full_name,
+            avatar_url: b.profiles.avatar_url
         })) || [];
 
         setRoster({ className: cls.name, students });
