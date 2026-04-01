@@ -55,10 +55,9 @@ export default function Login() {
     <WavyBackground topHeight="60%">
       <div className="flex flex-col relative" style={{ minHeight: '100vh' }}>
 
-      <main className="relative z-20 flex-grow flex flex-col items-center px-8">
-        {/* Logo & Header Section - Moved Up to the Blue Area (20vh) for Visibility */}
-        <div className="relative w-full h-[20vh] flex items-end justify-center mb-0">
-          <div className="absolute top-[20vh] -translate-y-1/2 z-30 flex flex-col items-center w-full">
+      <main className="relative z-20 flex-grow flex flex-col items-center px-8 pt-10">
+        {/* Logo & Header Section - Naturally Flowing in the Blue Area */}
+        <div className="flex flex-col items-center w-full mb-8">
             <motion.img
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ 
@@ -82,10 +81,9 @@ export default function Login() {
                 BEACH CLUB
               </p>
             </header>
-          </div>
         </div>
 
-        <div className="mt-40 w-full flex flex-col items-center">
+        <div className="w-full flex flex-col items-center">
         <AnimatePresence mode="wait">
           {step === 'splash' ? (
             <motion.div
@@ -174,7 +172,7 @@ export default function Login() {
         </AnimatePresence>
         </div>
 
-        <footer className="mt-4 text-center pb-8 relative z-20">
+        <footer className="mt-4 text-center pb-4 relative z-20">
           <p className="font-label font-medium text-sm text-on-surface">
             Não tem conta? <Link to="/register" className="font-bold underline decoration-2 underline-offset-4 decoration-[#006971]/30">Cadastre-se</Link>
           </p>
