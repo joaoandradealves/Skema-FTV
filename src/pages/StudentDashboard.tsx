@@ -489,6 +489,7 @@ export default function StudentDashboard() {
               <div className="space-y-3">
                 {dayClasses.map(cls => {
                     const isPast = new Date(cls.start_time) < new Date();
+                    const isBooked = bookings.some(b => b.classes.id === cls.id && b.status === 'agendado');
                     return (
                         <div key={cls.id} className={`bg-white p-5 rounded-[28px] border border-primary-container/10 shadow-sm flex items-center justify-between group transition-all ${isPast ? 'opacity-40 grayscale-[0.6]' : ''}`}>
                             <div className="flex items-center gap-4">
@@ -501,11 +502,11 @@ export default function StudentDashboard() {
                                 </div>
                             </div>
                             <button 
-                                onClick={() => !isPast && handleBooking(cls)} 
-                                disabled={isPast || bookingLoading === cls.id} 
-                                className={`h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md transition-all ${isPast ? 'bg-surface-container-highest text-on-surface-variant/40 cursor-not-allowed shadow-none' : 'bg-primary text-white active:scale-95'}`}
+                                onClick={() => !isPast && !isBooked && handleBooking(cls)} 
+                                disabled={isPast || bookingLoading === cls.id || isBooked} 
+                                className={`h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md transition-all ${isPast || isBooked ? 'bg-surface-container-highest text-on-surface-variant/40 cursor-not-allowed shadow-none' : 'bg-primary text-white active:scale-95'}`}
                             >
-                                {bookingLoading === cls.id ? '...' : (isPast ? 'Encerrado' : 'Check-in')}
+                                {bookingLoading === cls.id ? '...' : (isBooked ? 'Agendado' : (isPast ? 'Encerrado' : 'Check-in'))}
                             </button>
                         </div>
                     );
