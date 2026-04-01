@@ -155,6 +155,18 @@ export default function ClassSelection() {
 
       const now = new Date();
       const startTime = new Date(cls.start_time);
+      
+      // 1. Confirmação do Usuário
+      const timeStr = startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      if (!window.confirm(`Deseja confirmar seu check-in para a aula das ${timeStr}?`)) {
+          return;
+      }
+
+      if (startTime < now) {
+          alert('Esta aula já foi concluída!');
+          return;
+      }
+
       const hoursDiff = (startTime.getTime() - now.getTime()) / (1000 * 60 * 60);
 
       if (hoursDiff > 48) {
@@ -299,8 +311,9 @@ export default function ClassSelection() {
               classes.map(cls => {
                 const now = new Date();
                 const startTime = new Date(cls.start_time);
+                const isPast = startTime < now;
                 const hoursDiff = (startTime.getTime() - now.getTime()) / (1000 * 60 * 60);
-                const isLocked = hoursDiff > 48;
+                const isLocked = !isPast && hoursDiff > 48;
                 const activeBookings = (cls.bookings || []).filter((b: any) => b.status === 'agendado');
                 const isFull = activeBookings.length >= (cls.capacity || cls.max_students || 6);
                 const isBooked = bookedClassIds.includes(cls.id);
@@ -337,18 +350,18 @@ export default function ClassSelection() {
                         </div>
                       </div>
 
-                      <button 
-                        onClick={() => handleBooking(cls)}
-                        disabled={bookingLoading === cls.id || isFull || isLocked || profile?.plan_status !== 'ativo' || isBooked}
-                        className={`h-14 px-8 rounded-2xl font-headline font-extrabold text-xs uppercase tracking-widest transition-all shadow-lg active:scale-95
-                          ${isFull || isLocked || profile?.plan_status !== 'ativo' || isBooked
-                            ? 'bg-surface-container-highest text-on-surface-variant/30 cursor-not-allowed shadow-none'
-                            : 'bg-secondary text-white hover:bg-secondary/90'
-                          }
-                        `}
-                      >
-                        {isBooked ? 'Agendado' : isLocked ? 'Em 48h' : isFull ? 'Lotado' : (bookingLoading === cls.id ? '...' : 'Check-in')}
-                      </button>
+                        <button 
+                          onClick={() => handleBooking(cls)}
+                          disabled={bookingLoading === cls.id || isFull || isLocked || isPast || profile?.plan_status !== 'ativo' || isBooked}
+                          className={`h-14 px-8 rounded-2xl font-headline font-extrabold text-xs uppercase tracking-widest transition-all shadow-lg active:scale-95
+                            ${isFull || isLocked || isPast || profile?.plan_status !== 'ativo' || isBooked
+                              ? 'bg-surface-container-highest text-on-surface-variant/30 cursor-not-allowed shadow-none'
+                              : 'bg-secondary text-white hover:bg-secondary/90'
+                            }
+                          `}
+                        >
+                          {isBooked ? 'Agendado' : isPast ? 'Concluída' : isLocked ? 'Em 48h' : isFull ? 'Lotado' : (bookingLoading === cls.id ? '...' : 'Check-in')}
+                        </button>
                     </div>
                   </div>
                 );
