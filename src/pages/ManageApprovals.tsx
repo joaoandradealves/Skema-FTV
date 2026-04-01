@@ -65,6 +65,19 @@ export default function ManageApprovals() {
 
       if (error) throw error;
       
+      if (approve) {
+        // Obter os dados do aluno atualizado para a notificação
+        const app = approvals.find(a => a.id === userId);
+        if (app) {
+          const { notifyAdmin } = await import('../lib/notifications');
+          await notifyAdmin('plan_approved', {
+            email: app.email,
+            full_name: app.full_name,
+            plan_name: app.plan_name
+          });
+        }
+      }
+      
       setSuccessMsg(approve ? 'Plano aprovado com sucesso!' : 'Solicitação recusada.');
       setTimeout(() => setSuccessMsg(''), 3000);
       fetchApprovals();

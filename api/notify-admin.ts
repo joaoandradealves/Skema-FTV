@@ -22,6 +22,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { type, data } = req.body;
   const resendApiKey = process.env.RESEND_API_KEY;
   const adminEmail = 'joao.andrade.alves12@gmail.com';
+  
+  // Se a notificação for para aluno, o destino é o e-mail dele. 
+  // Caso contrário (cadastro novo, day use, etc), o destino é o admin.
+  const recipient = data.email || adminEmail;
 
   if (!resendApiKey) {
     console.error('RESEND_API_KEY is missing');
@@ -34,40 +38,108 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const waLink = (phone: string, msg: string) => 
     `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
 
+  const header = `
+    <div style="background-color: #006971; padding: 30px 20px; text-align: center; border-radius: 20px 20px 0 0;">
+      <h1 style="color: #ffffff; margin: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 28px; font-weight: 800; letter-spacing: -1px;">SKEMA BEACH CLUB</h1>
+    </div>
+  `;
+
+  const footer = `
+    <div style="padding: 30px 20px; text-align: center; color: #888; font-size: 11px; font-family: sans-serif;">
+      <p style="margin: 0;">© 2024 Skema Beach Club • Futevôlei & Lazer</p>
+      <p style="margin: 5px 0 0 0;">Este é um e-mail automático, por favor não responda.</p>
+    </div>
+  `;
+
   switch (type) {
     case 'registration':
       subject = `[SKEMA] 🚀 Novo Cadastro: ${data.full_name}`;
       html = `
-        <div style="font-family: sans-serif; padding: 20px; color: #333;">
-          <h1 style="color: #006971;">Novo Atleta no Skema!</h1>
-          <p><strong>Nome:</strong> ${data.full_name}</p>
-          <p><strong>E-mail:</strong> ${data.email}</p>
-          <p><strong>Telefone:</strong> ${data.phone}</p>
-          <p><strong>Tipo:</strong> ${data.role === 'teacher' ? 'Professor' : 'Aluno'}</p>
-          <br/>
-          <a href="${waLink(data.phone, `Olá ${data.full_name}, bem-vindo ao Skema Beach Club!`)}" 
-             style="background: #25D366; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
-             Dar Boas-Vindas no WhatsApp
-          </a>
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #f9f9f9; border-radius: 20px; border: 1px solid #eee;">
+          ${header}
+          <div style="padding: 40px 30px; background: white;">
+            <p style="font-size: 16px; color: #555;">Olá, <strong>João</strong>!</p>
+            <h2 style="color: #333; font-size: 20px;">Temos um novo atleta na areia!</h2>
+            <div style="background: #f0f7f8; padding: 20px; border-radius: 12px; margin: 25px 0;">
+              <p style="margin: 5px 0;"><strong>Nome:</strong> ${data.full_name}</p>
+              <p style="margin: 5px 0;"><strong>E-mail:</strong> ${data.email}</p>
+              <p style="margin: 5px 0;"><strong>Telefone:</strong> ${data.phone}</p>
+              <p style="margin: 5px 0;"><strong>Tipo:</strong> ${data.role === 'teacher' ? 'Professor' : 'Aluno'}</p>
+            </div>
+            <a href="${waLink(data.phone, `Olá ${data.full_name}, bem-vindo ao Skema Beach Club!`)}" 
+               style="background: #25D366; color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: bold; display: inline-block; font-size: 14px;">
+               Dar Boas-Vindas no WhatsApp
+            </a>
+          </div>
+          ${footer}
         </div>
       `;
       break;
+
     case 'plan_request':
       subject = `[SKEMA] 💳 Solicitação de Plano: ${data.full_name}`;
       html = `
-        <div style="font-family: sans-serif; padding: 20px; color: #333;">
-          <h1 style="color: #EF7651;">Solicitação de Plano Pendente</h1>
-          <p><strong>Aluno:</strong> ${data.full_name}</p>
-          <p><strong>Plano solicitado:</strong> ${data.plan_name}</p>
-          <br/>
-          <p>Acesse o painel para aprovar ou recusar:</p>
-          <a href="https://skema-ftv.vercel.app/admin/approvals" 
-             style="background: #006971; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
-             Ir para Aprovações
-          </a>
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border-radius: 20px; border: 1px solid #eee;">
+          ${header}
+          <div style="padding: 40px 30px;">
+            <h2 style="color: #EF7651; margin-top: 0;">Pagamento Pendente</h2>
+            <p><strong>Aluno:</strong> ${data.full_name}</p>
+            <p><strong>Plano solicitado:</strong> ${data.plan_name}</p>
+            <p style="color: #666; font-size: 14px;">Acesse o painel para verificar o comprovante e liberar o acesso do aluno.</p>
+            <a href="https://skema-ftv.vercel.app/admin/approvals" 
+               style="background: #006971; color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: bold; display: inline-block; margin-top: 20px;">
+               Ir para Aprovações
+            </a>
+          </div>
+          ${footer}
         </div>
       `;
       break;
+
+    case 'plan_approved':
+      subject = `[SKEMA] ✅ Seu plano foi APROVADO! Bem-vindo(a) à areia!`;
+      html = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border-radius: 20px; border: 1px solid #eee; overflow: hidden;">
+          ${header}
+          <div style="padding: 40px 30px; text-align: center;">
+            <h2 style="color: #006971; font-size: 24px;">Tudo pronto, ${data.full_name}!</h2>
+            <p style="font-size: 16px; color: #444;">Seu plano <strong>${data.plan_name}</strong> foi aprovado e agora você já pode realizar seus check-ins.</p>
+            <div style="margin: 30px 0; background: #fcfcfc; border: 2px dashed #eee; padding: 20px; border-radius: 16px;">
+              <p style="margin: 0; color: #888; text-transform: uppercase; font-weight: bold; font-size: 12px;">Status do Plano</p>
+              <p style="margin: 5px 0; color: #25D366; font-size: 20px; font-weight: bold;">ATIVO</p>
+            </div>
+            <a href="https://skema-ftv.vercel.app/book-class" 
+               style="background: #EF7651; color: white; padding: 18px 36px; text-decoration: none; border-radius: 16px; font-weight: bold; display: inline-block; font-size: 16px; box-shadow: 0 4px 12px rgba(239,118,81,0.3);">
+               Agendar Minha Primeira Aula
+            </a>
+          </div>
+          ${footer}
+        </div>
+      `;
+      break;
+
+    case 'booking_confirmed':
+      subject = `[SKEMA] 🏐 Check-in Confirmado! Nos vemos na quadra!`;
+      html = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border-radius: 20px; border: 1px solid #eee; overflow: hidden;">
+          <div style="background-color: #EF7651; padding: 30px 20px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-family: sans-serif; font-size: 28px; font-weight: 800;">CHECK-IN CONFIRMADO</h1>
+          </div>
+          <div style="padding: 40px 30px;">
+            <p style="font-size: 16px; color: #444;">Olá <strong>${data.full_name}</strong>, sua vaga está garantida!</p>
+            <div style="background: #f9f9f9; padding: 25px; border-radius: 20px; margin: 25px 0; border-left: 5px solid #EF7651;">
+              <h3 style="margin: 0 0 10px 0; color: #333; font-size: 18px;">${data.class_name}</h3>
+              <p style="margin: 5px 0;">📅 <strong>Data:</strong> ${data.date}</p>
+              <p style="margin: 5px 0;">⏰ <strong>Horário:</strong> ${data.time}</p>
+              <p style="margin: 5px 0;">📍 <strong>Local:</strong> ${data.court}</p>
+            </div>
+            <p style="color: #888; font-size: 13px; font-style: italic;">Caso não possa comparecer, realize o cancelamento com pelo menos 2 horas de antecedência.</p>
+          </div>
+          ${footer}
+        </div>
+      `;
+      break;
+
     case 'day_use':
       subject = `[SKEMA] ☀️ Novo Day Use: ${data.full_name}`;
       html = `
@@ -84,6 +156,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         </div>
       `;
       break;
+
     case 'court_rental':
       subject = `[SKEMA] 🎾 Reserva de Quadra: ${data.full_name}`;
       html = `
@@ -101,6 +174,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         </div>
       `;
       break;
+
     default:
       return res.status(400).json({ error: 'Invalid notification type' });
   }
@@ -114,7 +188,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
       body: JSON.stringify({
         from: 'Skema Beach Club <onboarding@resend.dev>',
-        to: [adminEmail],
+        to: [recipient],
         subject: subject,
         html: html
       })

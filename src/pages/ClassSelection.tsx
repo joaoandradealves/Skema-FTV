@@ -199,6 +199,17 @@ export default function ClassSelection() {
           if (insertError) throw insertError;
       }
 
+      // Enviar e-mail de confirmação para o aluno
+      const { notifyAdmin } = await import('../lib/notifications');
+      await notifyAdmin('booking_confirmed', {
+        email: profile.email,
+        full_name: profile.full_name,
+        class_name: cls.name,
+        date: new Date(cls.start_time).toLocaleDateString('pt-BR'),
+        time: new Date(cls.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+        court: cls.court
+      });
+
       // Se o plano for do tipo 'avulso', consumimos ele
       if (profile.plan?.type === 'avulso') {
         const { error: profileError } = await supabase
