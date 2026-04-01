@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { notifyAdmin } from '../lib/notifications';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -36,6 +37,14 @@ export default function Register() {
     }
 
     if (data.user) {
+      // Notify Admin
+      notifyAdmin('registration', {
+        full_name: fullName,
+        email: email,
+        phone: phone,
+        role: role
+      });
+
       alert('Cadastro realizado com sucesso! Verifique seu e-mail (se habilitado) ou faça login.');
       navigate('/');
     }

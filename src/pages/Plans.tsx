@@ -3,6 +3,7 @@ import TopAppBar from '../components/TopAppBar';
 import StudentNavbar from '../components/StudentNavbar';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { notifyAdmin } from '../lib/notifications';
 import WavyBackground from '../components/WavyBackground';
 
 interface Plan {
@@ -60,6 +61,13 @@ export default function Plans() {
             .eq('id', user.id);
 
         if (error) throw error;
+
+        // Notify Admin
+        notifyAdmin('plan_request', {
+          full_name: profile?.full_name || 'Aluno',
+          plan_name: plan?.name || 'Plano'
+        });
+
         alert('Solicitação enviada! Aguarde a aprovação do administrador.');
         fetchData();
     } catch (error: any) {

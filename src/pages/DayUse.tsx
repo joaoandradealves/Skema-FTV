@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import WavyBackground from '../components/WavyBackground';
 import TopAppBar from '../components/TopAppBar';
 import StudentNavbar from '../components/StudentNavbar';
+import { notifyAdmin } from '../lib/notifications';
 
 export default function DayUse() {
   const navigate = useNavigate();
@@ -52,6 +53,14 @@ export default function DayUse() {
       });
 
       if (error) throw error;
+
+      // Notify Admin
+      notifyAdmin('day_use', {
+        full_name: user.user_metadata?.full_name || 'Aluno',
+        offer_date: new Date(offer.offer_date).toLocaleDateString('pt-BR'),
+        price: offer.price
+      });
+
       alert('Solicitação de Day Use enviada! Aguarde a aprovação do Admin.');
       navigate('/student');
     } catch (error: any) {

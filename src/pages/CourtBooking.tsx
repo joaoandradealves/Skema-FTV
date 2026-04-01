@@ -5,6 +5,7 @@ import WavyBackground from '../components/WavyBackground';
 import TopAppBar from '../components/TopAppBar';
 import StudentNavbar from '../components/StudentNavbar';
 import { motion, AnimatePresence } from 'framer-motion';
+import { notifyAdmin } from '../lib/notifications';
 
 interface Profile {
     id: string;
@@ -166,6 +167,15 @@ export default function CourtBooking() {
       });
 
       if (error) throw error;
+
+      // Notify Admin
+      notifyAdmin('court_rental', {
+        full_name: user.user_metadata?.full_name || 'Aluno',
+        rental_date: new Date(dateString).toLocaleDateString('pt-BR'),
+        time_label: `${String(startHour).padStart(2, '0')}:00 - ${String(endHour).padStart(2, '0')}:00`,
+        price: selectedSlots.length * 60
+      });
+
       alert('Solicitação de aluguel enviada! Aguarde a aprovação do Admin.');
       navigate('/student');
     } catch (error: any) {
