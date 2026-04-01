@@ -325,8 +325,8 @@ export default function MyLoyalty() {
                                                         {new Date(tx.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                                     </p>
                                                 </div>
-                                                <span className={`text-sm font-black tabular-nums ${tx.type === 'earn' ? 'text-primary' : 'text-error'}`}>
-                                                    {tx.type === 'earn' ? '+' : '-'}{tx.amount}
+                                                <span className={`text-sm font-black tabular-nums ${['earn', 'credit'].includes(tx.type) ? 'text-primary' : 'text-error'}`}>
+                                                    {['earn', 'credit'].includes(tx.type) ? '+' : '-'}{Math.abs(tx.amount)}
                                                 </span>
                                             </div>
                                         ))
