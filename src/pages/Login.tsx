@@ -85,7 +85,7 @@ export default function Login() {
           </div>
         </div>
 
-        <div className="mt-64 w-full flex flex-col items-center">
+        <div className="mt-12 w-full flex flex-col items-center">
         <AnimatePresence mode="wait">
           {step === 'splash' ? (
             <motion.div
@@ -93,15 +93,8 @@ export default function Login() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="w-full max-w-xs flex flex-col items-center space-y-8"
+              className="w-full max-w-xs flex flex-col items-center space-y-4"
             >
-              <div className="text-center space-y-2">
-                <p className="text-on-surface font-black text-2xl tracking-tighter uppercase italic">
-                  Jogue na areia com quem sabe!
-                </p>
-                <div className="h-1.5 w-12 bg-secondary rounded-full mx-auto opacity-40" />
-              </div>
-
               <div className="w-full space-y-4 pt-4">
                 <button
                   onClick={() => startLoginFlow('student')}
