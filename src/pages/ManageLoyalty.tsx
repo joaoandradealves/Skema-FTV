@@ -164,14 +164,28 @@ export default function ManageLoyalty() {
   }
 
   async function handleDeleteReward(id: string) {
-    if (!confirm('Deseja realmente excluir este prêmio?')) return;
+    if (!confirm('Deseja realmente excluir este prêmio? O histórico de resgates deste item perderá o vínculo direto, mas o saldo de pontos dos alunos não será afetado.')) return;
     try {
+      setLoading(true);
+      
+      // 1. Desvincular resgates feitos por este prêmio
+      const { error: redemptionError } = await supabase
+        .from('loyalty_redemptions')
+        .update({ reward_id: null })
+        .eq('reward_id', id);
+      if (redemptionError) throw redemptionError;
+
+      // 2. Excluir o prêmio definitivamente
       const { error } = await supabase.from('loyalty_rewards').delete().eq('id', id);
       if (error) throw error;
+      
       setRewards(prev => prev.filter(r => r.id !== id));
       showSuccess('Prêmio removido!');
     } catch (error: any) {
-      alert(error.message);
+      console.error(error);
+      alert("Erro ao excluir: " + error.message);
+    } finally {
+      setLoading(false);
     }
   }
 
