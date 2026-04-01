@@ -43,7 +43,7 @@ export default function StudentDashboard() {
 
         const { data: bookingsData } = await supabase
           .from('bookings')
-          .select(`id, status, classes:class_id (*)`)
+          .select(`id, status, plan_id, classes:class_id (*)`)
           .eq('student_id', user.id)
           .neq('status', 'cancelado')
           .order('created_at', { ascending: false });
@@ -190,12 +190,89 @@ export default function StudentDashboard() {
 
       if (!confirm(`Confirmar futevôlei às ${new Date(cls.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}?`)) return;
 
-      const { error } = await supabase.from('bookings').insert({ student_id: user.id, class_id: cls.id, status: 'agendado' });
+      const { error } = await supabase.from('bookings').insert({ 
+        student_id: user.id, 
+        class_id: cls.id, 
+        status: 'agendado',
+        plan_id: profile.plan_id // Registra qual plano está pagando por esta aula
+      });
       if (error) throw error;
+
+      // Se o plano for do tipo 'avulso', consumimos ele imediatamente
+      if (profile.plan?.type === 'avulso') {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ 
+            plan_id: null, 
+            plan_status: 'nenhum' 
+          })
+          .eq('id', user.id);
+        if (profileError) throw profileError;
+      }
+
       alert('Check-in realizado!');
       window.location.reload();
     } catch (error: any) {
       alert(error.message);
+    } finally {
+      setBookingLoading(null);
+    }
+  }
+
+  async function handleCancelBooking(booking: any) {
+    try {
+      const classStart = new Date(booking.classes.start_time);
+      const now = new Date();
+      const diffMs = classStart.getTime() - now.getTime();
+      const diffHours = diffMs / (1000 * 60 * 60);
+
+      if (diffHours < 2) {
+        alert('O cancelamento deve ser feito com pelo menos 2 horas de antecedência.');
+        return;
+      }
+
+      if (!confirm('Deseja realmente cancelar este check-in?')) return;
+
+      setBookingLoading(booking.id);
+
+      // 1. Marcar agendamento como cancelado
+      const { error: bookingError } = await supabase
+        .from('bookings')
+        .update({ status: 'cancelado' })
+        .eq('id', booking.id);
+
+      if (bookingError) throw bookingError;
+
+      // 2. Se a aula foi paga com um plano, verificar se precisamos devolver
+      if (booking.plan_id) {
+          // Buscamos o tipo do plano que foi usado
+          const { data: planData } = await supabase
+            .from('plans')
+            .select('type')
+            .eq('id', booking.plan_id)
+            .single();
+
+          // Se o plano era 'avulso', devolvemos ele ao aluno
+          if (planData?.type === 'avulso') {
+            const { error: profileError } = await supabase
+              .from('profiles')
+              .update({ 
+                plan_id: booking.plan_id, 
+                plan_status: 'ativo' 
+              })
+              .eq('id', booking.student_id);
+            if (profileError) throw profileError;
+            alert('Check-in cancelado e crédito avulso devolvido!');
+          } else {
+            alert('Check-in cancelado com sucesso!');
+          }
+      } else {
+          alert('Check-in cancelado com sucesso!');
+      }
+
+      window.location.reload();
+    } catch (error: any) {
+      alert('Erro ao cancelar: ' + error.message);
     } finally {
       setBookingLoading(null);
     }
@@ -340,9 +417,20 @@ export default function StudentDashboard() {
                         {new Date(booking.classes.start_time).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })} • {new Date(booking.classes.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                       </p>
                     </div>
-                    <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${isPast ? 'bg-surface-container-highest text-on-surface-variant' : 'text-secondary bg-secondary-container/30'}`}>
-                        {isPast ? 'FINALIZADO' : booking.status}
-                    </span>
+                    <div className="text-right flex flex-col items-end gap-2">
+                        <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${isPast ? 'bg-surface-container-highest text-on-surface-variant' : 'text-secondary bg-secondary-container/30'}`}>
+                            {isPast ? 'FINALIZADO' : booking.status}
+                        </span>
+                        {!isPast && (
+                            <button 
+                                onClick={() => handleCancelBooking(booking)}
+                                disabled={bookingLoading === booking.id}
+                                className="text-[9px] font-black uppercase text-error/60 hover:text-error transition-colors"
+                            >
+                                {bookingLoading === booking.id ? '...' : 'Cancelar'}
+                            </button>
+                        )}
+                    </div>
                   </div>
                 );
               }) : (
