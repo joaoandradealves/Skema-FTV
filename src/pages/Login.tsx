@@ -85,7 +85,7 @@ export default function Login() {
           </div>
         </div>
 
-        <div className="mt-12 w-full flex flex-col items-center">
+        <div className="mt-48 w-full flex flex-col items-center">
         <AnimatePresence mode="wait">
           {step === 'splash' ? (
             <motion.div
