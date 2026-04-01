@@ -29,9 +29,14 @@ export default function ClassManagement() {
 
       if (classError) throw classError;
       setClassInfo(classData);
+      
+      // Converte UTC do banco para ISO Local para o input datetime-local
+      const dbDate = new Date(classData.start_time);
+      const localISO = new Date(dbDate.getTime() - dbDate.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+
       setEditFormData({
           name: classData.name,
-          start_time: classData.start_time.split('.')[0].slice(0, 16), // Formato para datetime-local
+          start_time: localISO,
           court: classData.court,
           capacity: classData.capacity
       });
@@ -68,7 +73,7 @@ export default function ClassManagement() {
           .from('classes')
           .update({
               name: editFormData.name,
-              start_time: editFormData.start_time,
+              start_time: new Date(editFormData.start_time).toISOString(),
               court: editFormData.court,
               capacity: parseInt(editFormData.capacity)
           })
