@@ -190,13 +190,39 @@ export default function StudentDashboard() {
 
       if (!confirm(`Confirmar futevôlei às ${new Date(cls.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}?`)) return;
 
-      const { error } = await supabase.from('bookings').insert({ 
-        student_id: user.id, 
-        class_id: cls.id, 
-        status: 'agendado',
-        plan_id: profile.plan_id // Registra qual plano está pagando por esta aula
-      });
-      if (error) throw error;
+      // 1. Verificar se já existe QUALQUER registro (inclusive cancelado)
+      const { data: existingAll } = await supabase
+        .from('bookings')
+        .select('id, status')
+        .eq('class_id', cls.id)
+        .eq('student_id', user.id)
+        .single();
+
+      if (existingAll) {
+          if (existingAll.status === 'agendado') {
+              alert('Você já está inscrito nesta aula!');
+              return;
+          }
+
+          // Se estava cancelado, REATIVAMOS o registro existente
+          const { error: updateError } = await supabase
+            .from('bookings')
+            .update({ 
+                status: 'agendado',
+                plan_id: profile.plan_id 
+            })
+            .eq('id', existingAll.id);
+
+          if (updateError) throw updateError;
+      } else {
+          const { error: insertError } = await supabase.from('bookings').insert({ 
+            student_id: user.id, 
+            class_id: cls.id, 
+            status: 'agendado',
+            plan_id: profile.plan_id 
+          });
+          if (insertError) throw insertError;
+      }
 
       // Se o plano for do tipo 'avulso', consumimos ele imediatamente
       if (profile.plan?.type === 'avulso') {

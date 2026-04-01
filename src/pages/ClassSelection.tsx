@@ -164,26 +164,49 @@ export default function ClassSelection() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Faça login para agendar');
 
-      const { data: existing } = await supabase
+      // 1. Verificar se já existe QUALQUER registro (inclusive cancelado)
+      const { data: existingAll } = await supabase
         .from('bookings')
-        .select('id')
+        .select('id, status')
         .eq('class_id', cls.id)
         .eq('student_id', user.id)
-        .neq('status', 'cancelado')
         .single();
       
-      if (existing) {
-        alert('Você já está inscrito nesta aula!');
-        return;
+      if (existingAll) {
+          if (existingAll.status === 'agendado') {
+              alert('Você já está inscrito nesta aula!');
+              return;
+          }
+          
+          // Se estava cancelado, REATIVAMOS o registro existente
+          const { error: updateError } = await supabase
+            .from('bookings')
+            .update({ 
+                status: 'agendado',
+                plan_id: profile.plan_id
+            })
+            .eq('id', existingAll.id);
+          
+          if (updateError) throw updateError;
+      } else {
+          // Caso não exista nenhum registro prévio, criamos do zero
+          const { error: insertError } = await supabase.from('bookings').insert({
+            class_id: cls.id,
+            student_id: user.id,
+            status: 'agendado',
+            plan_id: profile.plan_id
+          });
+          if (insertError) throw insertError;
       }
 
-      const { error } = await supabase.from('bookings').insert({
-        class_id: cls.id,
-        student_id: user.id,
-        status: 'agendado'
-      });
-
-      if (error) throw error;
+      // Se o plano for do tipo 'avulso', consumimos ele
+      if (profile.plan?.type === 'avulso') {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ plan_id: null, plan_status: 'nenhum' })
+          .eq('id', user.id);
+        if (profileError) throw profileError;
+      }
       alert('Reserva realizada com sucesso!');
       navigate('/student');
     } catch (error: any) {
