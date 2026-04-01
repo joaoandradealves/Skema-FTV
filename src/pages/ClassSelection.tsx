@@ -54,7 +54,7 @@ export default function ClassSelection() {
         .select(`
           *,
           teacher:teacher_id (full_name),
-          bookings:bookings(count)
+          bookings:bookings(status)
         `)
         .gte('start_time', startOfDay.toISOString())
         .lte('start_time', endOfDay.toISOString())
@@ -265,7 +265,8 @@ export default function ClassSelection() {
                 const startTime = new Date(cls.start_time);
                 const hoursDiff = (startTime.getTime() - now.getTime()) / (1000 * 60 * 60);
                 const isLocked = hoursDiff > 48;
-                const isFull = (cls.bookings[0]?.count || 0) >= cls.capacity;
+                const activeBookings = (cls.bookings || []).filter((b: any) => b.status === 'agendado');
+                const isFull = activeBookings.length >= (cls.capacity || cls.max_students || 6);
                 const isBooked = bookedClassIds.includes(cls.id);
 
                 return (
@@ -295,7 +296,7 @@ export default function ClassSelection() {
                             className="flex items-center gap-2 px-3 py-1.5 bg-secondary/10 text-secondary rounded-full text-xs font-black transition-all hover:bg-secondary/20 active:scale-95 h-7"
                           >
                             <span className="material-symbols-outlined text-sm">groups</span>
-                            {cls.bookings[0]?.count || 0}/{cls.capacity} <span className="text-[9px] uppercase tracking-tighter opacity-70">Ver Alunos</span>
+                            {(cls.bookings || []).filter((b: any) => b.status === 'agendado').length}/{cls.capacity || cls.max_students || 6} <span className="text-[9px] uppercase tracking-tighter opacity-70">Ver Alunos</span>
                           </button>
                         </div>
                       </div>

@@ -101,7 +101,7 @@ export default function StudentDashboard() {
 
         const { data } = await supabase
           .from('classes')
-          .select('*, teacher:teacher_id(full_name)')
+          .select('*, teacher:teacher_id(full_name), bookings(status)')
           .gte('start_time', start.toISOString())
           .lte('start_time', end.toISOString())
           .order('start_time', { ascending: true });
@@ -111,7 +111,7 @@ export default function StudentDashboard() {
       }
     }
     fetchDayClasses();
-  }, [selectedDate]);
+  }, [selectedDate, bookings]); // Adicionado 'bookings' para atualizar o contador após cancelamento
 
   // Rental Management
   async function openRentalModal(rental: any) {
