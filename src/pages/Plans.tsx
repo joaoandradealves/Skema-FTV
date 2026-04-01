@@ -14,6 +14,7 @@ interface Plan {
   tag: string;
   type: string;
   classes_per_week: number;
+  billing_cycle?: string;
 }
 
 export default function Plans() {
@@ -117,7 +118,7 @@ export default function Plans() {
                             {plan.tag && <span className="inline-block px-2 py-0.5 bg-secondary text-white text-[10px] font-bold rounded mb-2 uppercase tracking-tighter">{plan.tag}</span>}
                             <h3 className="font-headline font-bold text-xl text-on-surface">{plan.name}</h3>
                             <p className="text-on-surface-variant text-sm font-medium mt-1">
-                                {plan.classes_per_week >= 99 ? 'Check-in Livre' : `${plan.classes_per_week} aulas / semana`}
+                                {plan.classes_per_week >= 99 ? 'Check-in Livre' : `${plan.classes_per_week} aulas / ${plan.billing_cycle === 'mensal' ? 'mês' : 'semana'}`}
                             </p>
                             <div className="mt-4 flex items-baseline gap-1">
                                 <span className="text-xs font-bold text-on-surface">R$</span>
