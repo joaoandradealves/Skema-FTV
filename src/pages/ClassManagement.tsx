@@ -91,11 +91,22 @@ export default function ClassManagement() {
 
   async function addStudent(studentId: string) {
     try {
+      // Busca o plano atual do aluno para registrar corretamente o check-in
+      const { data: studentProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('plan_id, plan_status')
+        .eq('id', studentId)
+        .single();
+
+      if (profileError) throw profileError;
+
       const { error } = await supabase.from('bookings').insert({
         class_id: id,
         student_id: studentId,
-        status: 'agendado'
+        status: 'agendado',
+        plan_id: studentProfile.plan_id // Vincula o plano para contabilizar no saldo
       });
+
       if (error) throw error;
       fetchClassData();
       setShowAddStudent(false);
