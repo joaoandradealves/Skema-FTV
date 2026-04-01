@@ -28,8 +28,10 @@ export default function MyLoyalty() {
     const [rewards, setRewards] = useState<Reward[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
-    const [redemptionId, setRedemptionId] = useState<string | null>(null);
     const [showQR, setShowQR] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [pendingReward, setPendingReward] = useState<Reward | null>(null);
+    const [redemptionId, setRedemptionId] = useState<string | null>(null);
     const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
     const [activeTier, setActiveTier] = useState<number | null>(null);
     const [profile, setProfile] = useState<any>(null);
@@ -130,6 +132,12 @@ export default function MyLoyalty() {
         }
     }
 
+    function handleAskRedeem(reward: Reward) {
+        if (points < reward.points_cost) return;
+        setPendingReward(reward);
+        setShowConfirmModal(true);
+    }
+
     async function handleGenerateCoupon(reward: Reward) {
         if (points < reward.points_cost) return;
         
@@ -151,6 +159,8 @@ export default function MyLoyalty() {
             setRedemptionId(data.id);
             setSelectedReward(reward);
             setShowQR(true);
+            setShowConfirmModal(false);
+            setPendingReward(null);
             setTimeLeft(600);
         } catch (error: any) {
             alert('Erro ao gerar cupom: ' + error.message);
@@ -231,7 +241,7 @@ export default function MyLoyalty() {
                                         <motion.div 
                                             layout
                                             key={reward.id} 
-                                            onClick={() => canAfford && handleGenerateCoupon(reward)}
+                                            onClick={() => canAfford && handleAskRedeem(reward)}
                                             className="flex flex-col items-center space-y-4 group cursor-pointer"
                                         >
                                             {/* Card Container */}
@@ -329,6 +339,55 @@ export default function MyLoyalty() {
                                 >
                                     VOLTAR
                                 </button>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
+
+                {/* Confirmation Modal - McDonald's Style */}
+                <AnimatePresence>
+                    {showConfirmModal && pendingReward && (
+                        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
+                            <motion.div 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute inset-0 bg-on-background/80 backdrop-blur-md" 
+                                onClick={() => setShowConfirmModal(false)}
+                            />
+                            <motion.div 
+                                initial={{ y: '100%' }}
+                                animate={{ y: 0 }}
+                                exit={{ y: '100%' }}
+                                className="bg-surface w-full max-w-sm rounded-t-[50px] sm:rounded-[50px] p-8 shadow-2xl relative z-10 space-y-6"
+                            >
+                                <div className="text-center space-y-3">
+                                    <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-2">
+                                        <span className="material-symbols-outlined text-4xl text-primary">redeem</span>
+                                    </div>
+                                    <h3 className="font-headline font-black text-2xl text-on-surface tracking-tight uppercase">Confirmar Resgate?</h3>
+                                    <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] px-4">
+                                        Você está prestes a trocar <span className="text-primary">{pendingReward.points_cost} pontos</span> por:
+                                    </p>
+                                    <p className="text-sm font-black text-on-surface uppercase tracking-widest bg-surface-container-highest/50 py-3 rounded-2xl">
+                                        {pendingReward.name}
+                                    </p>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <button 
+                                        onClick={() => handleGenerateCoupon(pendingReward)}
+                                        className="w-full h-16 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-primary/20 active:scale-95 transition-all"
+                                    >
+                                        RESGATAR AGORA
+                                    </button>
+                                    <button 
+                                        onClick={() => setShowConfirmModal(false)}
+                                        className="w-full h-16 bg-surface-container-highest text-on-surface-variant rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] active:scale-95 transition-all"
+                                    >
+                                        CANCELAR
+                                    </button>
+                                </div>
                             </motion.div>
                         </div>
                     )}
