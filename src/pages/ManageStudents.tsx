@@ -11,6 +11,17 @@ interface Profile {
   created_at: string;
   avatar_url: string;
   plan_status: string;
+  loyalty_points?: {
+      balance: number;
+  };
+}
+
+interface Transaction {
+    id: string;
+    amount: number;
+    type: 'credit' | 'debit';
+    description: string;
+    created_at: string;
 }
 
 export default function ManageStudents() {
@@ -18,6 +29,11 @@ export default function ManageStudents() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingStudent, setEditingStudent] = useState<Profile | null>(null);
+  const [managingPoints, setManagingPoints] = useState<Profile | null>(null);
+  const [history, setHistory] = useState<Transaction[]>([]);
+  const [adjustmentValue, setAdjustmentValue] = useState('');
+  const [adjustmentReason, setAdjustmentReason] = useState('');
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
 
   useEffect(() => {
@@ -29,7 +45,7 @@ export default function ManageStudents() {
       setLoading(true);
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*, loyalty_points(balance)')
         .eq('role', 'student')
         .order('full_name', { ascending: true });
       
@@ -86,6 +102,67 @@ export default function ManageStudents() {
       alert(error.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchHistory(studentId: string) {
+    try {
+      setLoadingHistory(true);
+      const { data, error } = await supabase
+        .from('loyalty_transactions')
+        .select('*')
+        .eq('user_id', studentId)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      setHistory(data || []);
+    } catch (error: any) {
+      console.error(error.message);
+    } finally {
+      setLoadingHistory(false);
+    }
+  }
+
+  async function handlePointsAdjustment(type: 'credit' | 'debit') {
+    if (!managingPoints || !adjustmentValue || !adjustmentReason) {
+      alert('Preencha o valor e a justificativa!');
+      return;
+    }
+
+    try {
+      const amount = parseInt(adjustmentValue);
+      const finalAmount = type === 'credit' ? amount : -amount;
+
+      const { error } = await supabase
+        .from('loyalty_transactions')
+        .insert({
+          user_id: managingPoints.id,
+          amount: finalAmount,
+          type: type,
+          description: `[Ajuste Admin] ${adjustmentReason}`
+        });
+
+      if (error) throw error;
+
+      // Atualizar localmente o saldo na lista de estudantes
+      setStudents(prev => prev.map(s => {
+        if (s.id === managingPoints.id) {
+          const currentBalance = s.loyalty_points?.balance || 0;
+          return {
+            ...s,
+            loyalty_points: { balance: currentBalance + finalAmount }
+          };
+        }
+        return s;
+      }));
+
+      showSuccess(`Pontos ${type === 'credit' ? 'creditados' : 'debitados'} com sucesso!`);
+      setAdjustmentValue('');
+      setAdjustmentReason('');
+      fetchHistory(managingPoints.id); // Recarregar histórico
+    } catch (error: any) {
+      alert('Erro ao ajustar pontos: ' + error.message);
     }
   }
 
@@ -172,7 +249,19 @@ export default function ManageStudents() {
                     <img src={student.avatar_url || 'https://via.placeholder.com/150'} alt={student.full_name} className="w-full h-full object-cover" />
                   </div>
                   <div>
-                    <h3 className="font-headline font-black text-xl text-on-surface leading-tight">{student.full_name}</h3>
+                    <h3 className="font-headline font-black text-xl text-on-surface leading-tight flex items-center gap-2">
+                        {student.full_name}
+                        <button 
+                            onClick={() => {
+                                setManagingPoints(student);
+                                fetchHistory(student.id);
+                            }}
+                            className="bg-[#D4AF37]/10 text-[#D4AF37] px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1 hover:bg-[#D4AF37] hover:text-white transition-all shadow-sm"
+                        >
+                            <span className="material-symbols-outlined text-[12px]">workspace_premium</span>
+                            {student.loyalty_points?.balance || 0} PTS
+                        </button>
+                    </h3>
                     <p className="text-on-surface-variant text-xs font-medium flex items-center gap-1">
                       <span className="material-symbols-outlined text-[10px]">mail</span> {student.email}
                     </p>
@@ -272,7 +361,110 @@ export default function ManageStudents() {
             </div>
           </div>
         )}
+
+        {/* Loyalty Points Modal */}
+        {managingPoints && (
+            <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 backdrop-blur-md bg-on-surface/20 animate-in fade-in duration-300">
+                <div className="bg-white w-full max-w-2xl rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col md:flex-row h-[80vh] md:h-auto">
+                    {/* Left Side: History */}
+                    <div className="flex-1 p-8 bg-surface-container/30 border-r border-primary-container/10 overflow-y-auto custom-scrollbar">
+                        <div className="mb-6">
+                            <h3 className="font-headline font-black text-xl text-on-surface flex items-center gap-2">
+                                <span className="material-symbols-outlined text-[#D4AF37]">history</span>
+                                HISTÓRICO
+                            </h3>
+                            <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Atividades recentes de {managingPoints.full_name.split(' ')[0]}</p>
+                        </div>
+
+                        {loadingHistory ? (
+                            <div className="py-10 text-center animate-pulse text-[10px] font-black text-primary/40 uppercase tracking-widest">Carregando extrato...</div>
+                        ) : history.length > 0 ? (
+                            <div className="space-y-3">
+                                {history.map(t => (
+                                    <div key={t.id} className="bg-white p-4 rounded-2xl border border-primary-container/5 shadow-sm">
+                                        <div className="flex justify-between items-start">
+                                            <p className="text-[11px] font-bold text-on-surface leading-tight">{t.description}</p>
+                                            <span className={`text-[11px] font-black ${t.amount > 0 ? 'text-primary' : 'text-error'}`}>
+                                                {t.amount > 0 ? '+' : ''}{t.amount}
+                                            </span>
+                                        </div>
+                                        <p className="text-[9px] font-medium text-on-surface-variant mt-1">
+                                            {new Date(t.created_at).toLocaleDateString('pt-BR')} às {new Date(t.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="py-10 text-center text-on-surface-variant/40 italic text-xs">Nenhuma transação encontrada.</div>
+                        )}
+                    </div>
+
+                    {/* Right Side: Adjustment Panel */}
+                    <div className="w-full md:w-[320px] p-8 space-y-8 bg-white relative">
+                        <button onClick={() => setManagingPoints(null)} className="absolute top-4 right-4 w-10 h-10 rounded-full bg-surface-container flex items-center justify-center material-symbols-outlined opacity-40">close</button>
+                        
+                        <div>
+                            <div className="bg-[#D4AF37]/10 p-6 rounded-[32px] text-center border-2 border-[#D4AF37]/20">
+                                <p className="text-[10px] font-black text-[#D4AF37] uppercase tracking-[0.2em] mb-1">Saldo Atual</p>
+                                <h4 className="font-headline font-black text-4xl text-[#D4AF37] tracking-tighter italic">
+                                    {(students.find(s => s.id === managingPoints.id)?.loyalty_points as any)?.balance || 0}
+                                </h4>
+                                <p className="text-[10px] font-bold text-[#D4AF37]/60 uppercase">Skema Points</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-2">Pontos para ajustar</label>
+                                <input 
+                                    type="number" 
+                                    value={adjustmentValue}
+                                    onChange={e => setAdjustmentValue(e.target.value)}
+                                    placeholder="Ex: 50"
+                                    className="w-full h-14 px-6 rounded-2xl bg-surface-container font-black text-lg focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-2">Justificativa</label>
+                                <textarea 
+                                    value={adjustmentReason}
+                                    onChange={e => setAdjustmentReason(e.target.value)}
+                                    placeholder="Motivo do ajuste..."
+                                    className="w-full p-4 rounded-2xl bg-surface-container font-bold text-xs focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none"
+                                    rows={3}
+                                />
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button 
+                                    onClick={() => handlePointsAdjustment('credit')}
+                                    className="flex-1 h-14 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <span className="material-symbols-outlined text-sm">add</span> CREDITAR
+                                </button>
+                                <button 
+                                    onClick={() => handlePointsAdjustment('debit')}
+                                    className="flex-1 h-14 bg-error text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-error/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <span className="material-symbols-outlined text-sm">remove</span> DEBITAR
+                                </button>
+                            </div>
+                        </div>
+
+                        <p className="text-[9px] font-medium text-center text-on-surface-variant px-4 italic leading-tight">
+                            *O ajuste manual é lançado imediatamente e notificado no extrato do aluno.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        )}
       </main>
+
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.05); border-radius: 10px; }
+      `}</style>
     </div>
   );
 }
