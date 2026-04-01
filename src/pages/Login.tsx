@@ -52,13 +52,13 @@ export default function Login() {
   };
 
   return (
-    <WavyBackground topHeight="55%">
+    <WavyBackground topHeight="50%">
       <div className="flex flex-col relative" style={{ minHeight: '100vh' }}>
 
       <main className="relative z-20 flex-grow flex flex-col items-center px-8">
-        {/* Logo & Header Section - Centered on the Wave Division (55%) */}
-        <div className="relative w-full h-[55vh] flex items-end justify-center mb-8">
-          <div className="absolute top-[55vh] -translate-y-1/2 z-30 flex flex-col items-center w-full">
+        {/* Logo & Header Section - Moved Up to the Blue Area (20vh) for Visibility */}
+        <div className="relative w-full h-[20vh] flex items-end justify-center mb-0">
+          <div className="absolute top-[20vh] -translate-y-1/2 z-30 flex flex-col items-center w-full">
             <motion.img
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ 
@@ -85,7 +85,7 @@ export default function Login() {
           </div>
         </div>
 
-        <div className="mt-48 w-full flex flex-col items-center">
+        <div className="mt-12 w-full flex flex-col items-center">
         <AnimatePresence mode="wait">
           {step === 'splash' ? (
             <motion.div
@@ -98,13 +98,13 @@ export default function Login() {
               <div className="w-full space-y-4 pt-4">
                 <button
                   onClick={() => startLoginFlow('student')}
-                  className="w-full py-4 px-6 rounded-3xl font-headline font-bold text-on-surface bg-[#48D1E0] shadow-md hover:bg-[#3bc2d1] active:scale-95 transition-all text-sm uppercase tracking-widest border border-white/20"
+                  className="w-full h-16 px-6 rounded-3xl font-headline font-bold text-on-surface bg-[#48D1E0] shadow-md hover:bg-[#3bc2d1] active:scale-95 transition-all text-base uppercase tracking-widest border border-white/20"
                 >
                   LOGIN ALUNO
                 </button>
                 <button
                   onClick={() => startLoginFlow('teacher')}
-                  className="w-full py-4 px-6 rounded-3xl font-headline font-bold text-white bg-[#EF7651] shadow-md hover:bg-[#d46545] active:scale-95 transition-all text-sm uppercase tracking-widest border border-white/20"
+                  className="w-full h-16 px-6 rounded-3xl font-headline font-bold text-white bg-[#EF7651] shadow-md hover:bg-[#d46545] active:scale-95 transition-all text-base uppercase tracking-widest border border-white/20"
                 >
                   LOGIN PROFESSOR
                 </button>
