@@ -55,23 +55,37 @@ export default function Login() {
     <WavyBackground topHeight="55%">
       <div className="flex flex-col relative" style={{ minHeight: '100vh' }}>
 
-      <main className="relative z-20 flex-grow flex flex-col items-center pt-12 px-8">
-        <div className="mt-8 mb-4 relative z-30 flex flex-col items-center">
-          <img
-            alt="Skema Mermaid"
-            className="w-40 h-40 object-contain drop-shadow-sm mb-4"
-            src="/sereia.svg"
-          />
-          <header className="text-center">
-            <h1 className="font-headline font-bold text-3xl tracking-[0.15em] leading-tight text-white drop-shadow-md">
-              SKEMA
-            </h1>
-            <p className="text-[10px] font-bold tracking-[0.4em] uppercase text-white/80 mt-1 ml-1">
-              BEACH CLUB
-            </p>
-          </header>
+      <main className="relative z-20 flex-grow flex flex-col items-center px-8">
+        {/* Logo & Header Section - Centered on the Wave Division (55%) */}
+        <div className="relative w-full h-[55vh] flex items-end justify-center mb-8">
+          <div className="absolute top-[55vh] -translate-y-1/2 z-30 flex flex-col items-center w-full">
+            <motion.img
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ 
+                scale: 1, 
+                opacity: 1,
+                y: [0, -15, 0]
+              }}
+              transition={{ 
+                scale: { type: 'spring', damping: 20, stiffness: 100 },
+                y: { duration: 6, repeat: Infinity, ease: "easeInOut" }
+              }}
+              alt="Skema Mermaid"
+              className="w-64 h-64 object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.3)] mb-4"
+              src="/sereia.svg"
+            />
+            <header className="text-center">
+              <h1 className="font-headline font-black text-6xl tracking-[0.15em] leading-tight text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]">
+                SKEMA
+              </h1>
+              <p className="text-sm font-black tracking-[0.5em] uppercase text-white drop-shadow-md mt-2">
+                BEACH CLUB
+              </p>
+            </header>
+          </div>
         </div>
 
+        <div className="mt-64 w-full flex flex-col items-center">
         <AnimatePresence mode="wait">
           {step === 'splash' ? (
             <motion.div
@@ -79,11 +93,14 @@ export default function Login() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="w-full max-w-xs flex flex-col items-center space-y-6"
+              className="w-full max-w-xs flex flex-col items-center space-y-8"
             >
-              <p className="text-on-surface font-bold text-lg text-center mt-2">
-                Jogue na areia com quem sabe!
-              </p>
+              <div className="text-center space-y-2">
+                <p className="text-on-surface font-black text-2xl tracking-tighter uppercase italic">
+                  Jogue na areia com quem sabe!
+                </p>
+                <div className="h-1.5 w-12 bg-secondary rounded-full mx-auto opacity-40" />
+              </div>
 
               <div className="w-full space-y-4 pt-4">
                 <button
@@ -162,6 +179,7 @@ export default function Login() {
             </motion.div>
           )}
         </AnimatePresence>
+        </div>
 
         <footer className="mt-8 text-center pb-8 relative z-20">
           <p className="font-label font-medium text-sm text-on-surface">
