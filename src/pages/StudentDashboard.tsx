@@ -295,24 +295,27 @@ export default function StudentDashboard() {
           <section className="space-y-6">
               <h4 className="font-headline font-extrabold text-2xl tracking-tight uppercase underline decoration-secondary decoration-4 underline-offset-8 mb-8">Quadras Reservadas</h4>
               <div className="space-y-4">
-                  {courtRentals.length > 0 ? courtRentals.map(rental => (
-                      <button key={rental.id} onClick={() => openRentalModal(rental)} className="w-full bg-white p-6 rounded-[32px] border-2 border-primary-container/10 shadow-sm flex items-center gap-4 text-left active:scale-[0.98] transition-all group">
-                          <div className="w-12 h-12 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center group-hover:bg-secondary group-hover:text-white transition-all">
-                              <span className="material-symbols-outlined font-black">stadium</span>
-                          </div>
-                          <div className="flex-1">
-                              <h5 className="font-headline font-black text-on-surface leading-tight uppercase text-sm">{rental.court_name}</h5>
-                              <p className="text-xs font-bold text-on-surface-variant tracking-tight mt-0.5">
-                                  {new Date(rental.rental_date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })} • {rental.start_time.slice(0, 5)}
-                              </p>
-                          </div>
-                          <div className="text-right">
-                              <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-full ${rental.status === 'aprovado' ? 'bg-primary/10 text-primary' : 'bg-orange-100 text-orange-600'}`}>
-                                  {rental.status === 'aprovado' ? 'CONCLUÍDO' : rental.status.toUpperCase()}
-                              </span>
-                          </div>
-                      </button>
-                  )) : (
+                  {courtRentals.length > 0 ? courtRentals.map(rental => {
+                      const isPast = new Date(`${rental.rental_date}T${rental.start_time}`) < new Date();
+                      return (
+                          <button key={rental.id} onClick={() => openRentalModal(rental)} className={`w-full bg-white p-6 rounded-[32px] border-2 border-primary-container/10 shadow-sm flex items-center gap-4 text-left active:scale-[0.98] transition-all group ${isPast ? 'opacity-40 grayscale-[0.6]' : ''}`}>
+                              <div className="w-12 h-12 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center group-hover:bg-secondary group-hover:text-white transition-all">
+                                  <span className="material-symbols-outlined font-black">stadium</span>
+                              </div>
+                              <div className="flex-1">
+                                  <h5 className="font-headline font-black text-on-surface leading-tight uppercase text-sm">{rental.court_name}</h5>
+                                  <p className="text-xs font-bold text-on-surface-variant tracking-tight mt-0.5">
+                                      {new Date(rental.rental_date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })} • {rental.start_time.slice(0, 5)}
+                                  </p>
+                              </div>
+                              <div className="text-right">
+                                  <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-full ${isPast ? 'bg-surface-container-highest text-on-surface-variant' : (rental.status === 'aprovado' ? 'bg-primary/10 text-primary' : 'bg-orange-100 text-orange-600')}`}>
+                                      {isPast ? 'FINALIZADO' : (rental.status === 'aprovado' ? 'PAGO' : rental.status.toUpperCase())}
+                                  </span>
+                              </div>
+                          </button>
+                      );
+                  }) : (
                       <div className="text-center py-10 bg-white/30 rounded-[32px] border-2 border-dashed border-primary-container/10">
                            <p className="text-on-surface-variant text-[10px] font-black uppercase tracking-widest opacity-40 italic">Nenhuma quadra reservada.</p>
                       </div>
@@ -324,20 +327,25 @@ export default function StudentDashboard() {
           <section className="space-y-6">
             <h4 className="font-headline font-extrabold text-2xl tracking-tight uppercase underline decoration-primary decoration-4 underline-offset-8 mb-8">Meus Check-ins</h4>
             <div className="space-y-4">
-              {bookings.length > 0 ? bookings.map(booking => (
-                <div key={booking.id} className="flex items-center gap-4 p-5 bg-white rounded-[28px] border-2 border-primary-container/10 shadow-sm">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                    <span className="material-symbols-outlined font-bold">sports_volleyball</span>
+              {bookings.length > 0 ? bookings.map(booking => {
+                const isPast = new Date(booking.classes.start_time) < new Date();
+                return (
+                  <div key={booking.id} className={`flex items-center gap-4 p-5 bg-white rounded-[28px] border-2 border-primary-container/10 shadow-sm transition-all ${isPast ? 'opacity-40 grayscale-[0.6]' : ''}`}>
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                      <span className="material-symbols-outlined font-bold">sports_volleyball</span>
+                    </div>
+                    <div className="flex-1">
+                      <h5 className="font-headline font-bold text-on-surface text-lg leading-none mb-1">{booking.classes.name}</h5>
+                      <p className="text-xs font-bold text-on-surface-variant tracking-tight uppercase">
+                        {new Date(booking.classes.start_time).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })} • {new Date(booking.classes.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      </p>
+                    </div>
+                    <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${isPast ? 'bg-surface-container-highest text-on-surface-variant' : 'text-secondary bg-secondary-container/30'}`}>
+                        {isPast ? 'FINALIZADO' : booking.status}
+                    </span>
                   </div>
-                  <div className="flex-1">
-                    <h5 className="font-headline font-bold text-on-surface text-lg leading-none mb-1">{booking.classes.name}</h5>
-                    <p className="text-xs font-bold text-on-surface-variant tracking-tight uppercase">
-                      {new Date(booking.classes.start_time).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })} • {new Date(booking.classes.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                    </p>
-                  </div>
-                  <span className="text-[10px] font-black uppercase px-3 py-1 rounded-full text-secondary bg-secondary-container/30">{booking.status}</span>
-                </div>
-              )) : (
+                );
+              }) : (
                   <div className="text-center py-10 text-on-surface-variant font-medium italic opacity-50 px-12 leading-tight">Sua agenda de futevôlei está livre.</div>
               )}
             </div>

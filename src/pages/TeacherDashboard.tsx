@@ -90,35 +90,39 @@ export default function TeacherDashboard() {
             <span className="text-[10px] font-bold uppercase text-primary tracking-tighter">Ver Todas</span>
           </div>
           <div className="space-y-3">
-            {classes.map(cls => (
-              <div 
-                key={cls.id} 
-                onClick={() => navigate(`/class-management/${cls.id}`)}
-                className="bg-surface-container-low p-4 rounded-2xl flex items-center gap-1 transition-transform active:scale-[0.98] cursor-pointer"
-              >
-                <div className="w-14 h-14 bg-white rounded-xl flex flex-col items-center justify-center border border-outline-variant/20">
-                  <span className="text-[10px] font-black text-secondary uppercase">
-                    {new Date(cls.start_time).toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}
-                  </span>
-                  <span className="text-xl font-headline font-black">
-                    {new Date(cls.start_time).getDate()}
-                  </span>
-                </div>
-                <div className="flex-1 ml-3">
-                  <p className="font-bold text-sm">{cls.name}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="material-symbols-outlined text-xs text-primary">schedule</span>
-                    <span className="text-xs text-on-surface-variant">
-                      {new Date(cls.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+            {classes.map(cls => {
+              const isPast = new Date(cls.start_time) < new Date();
+              return (
+                <div 
+                  key={cls.id} 
+                  onClick={() => navigate(`/class-management/${cls.id}`)}
+                  className={`bg-surface-container-low p-4 rounded-2xl flex items-center gap-1 transition-transform active:scale-[0.98] cursor-pointer ${isPast ? 'opacity-40 grayscale' : ''}`}
+                >
+                  <div className={`w-14 h-14 rounded-xl flex flex-col items-center justify-center border border-outline-variant/20 ${isPast ? 'bg-surface-container-highest' : 'bg-white'}`}>
+                    <span className={`text-[10px] font-black uppercase ${isPast ? 'text-on-surface-variant/40' : 'text-secondary'}`}>
+                      {new Date(cls.start_time).toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}
+                    </span>
+                    <span className={`text-xl font-headline font-black ${isPast ? 'text-on-surface-variant/40' : ''}`}>
+                      {new Date(cls.start_time).getDate()}
                     </span>
                   </div>
+                  <div className="flex-1 ml-3">
+                    <p className={`font-bold text-sm ${isPast ? 'text-on-surface-variant/40 text-strikethrough' : ''}`}>{cls.name}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className={`material-symbols-outlined text-xs ${isPast ? 'text-on-surface-variant/20' : 'text-primary'}`}>schedule</span>
+                      <span className={`text-xs ${isPast ? 'text-on-surface-variant/40' : 'text-on-surface-variant'}`}>
+                        {new Date(cls.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        {isPast && <span className="ml-2 font-black uppercase text-[8px] tracking-tight"> FINALIZADA</span>}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 bg-surface-container-high px-2 py-1 rounded-lg">
+                    <span className="material-symbols-outlined text-xs opacity-40">groups</span>
+                    <span className="text-xs font-bold">{cls.bookings[0]?.count || 0}/{cls.capacity}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 bg-surface-container-high px-2 py-1 rounded-lg">
-                  <span className="material-symbols-outlined text-xs opacity-40">groups</span>
-                  <span className="text-xs font-bold">{cls.bookings[0]?.count || 0}/{cls.capacity}</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
             {classes.length === 0 && <p className="text-center py-8 text-on-surface-variant italic">Nenhuma aula cadastrada ainda.</p>}
           </div>
         </section>
