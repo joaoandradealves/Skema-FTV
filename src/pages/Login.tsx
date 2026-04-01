@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { notifyAdmin } from '../lib/notifications';
 import { motion, AnimatePresence } from 'motion/react';
 import WavyBackground from '../components/WavyBackground';
 
@@ -176,6 +177,17 @@ export default function Login() {
           <p className="font-label font-medium text-sm text-on-surface">
             Não tem conta? <Link to="/register" className="font-bold underline decoration-2 underline-offset-4 decoration-[#006971]/30">Cadastre-se</Link>
           </p>
+          <button 
+            onClick={() => notifyAdmin('registration', { 
+              full_name: 'TESTE DE CONFIGURAÇÃO', 
+              email: 'teste@skema.com', 
+              phone: '41999999999', 
+              role: 'student' 
+            })}
+            className="mt-6 text-[10px] font-bold text-on-surface-variant/30 uppercase tracking-[0.2em] hover:text-secondary transition-all"
+          >
+            🔔 Testar Notificação Admin
+          </button>
         </footer>
       </main>
       </div>
