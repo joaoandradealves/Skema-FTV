@@ -73,14 +73,35 @@ export default function ManagePlans() {
   }
 
   async function deletePlan(id: string) {
-    if (!confirm('Deseja realmente excluir este plano? Esta ação não pode ser desfeita.')) return;
+    if (!confirm('Deseja realmente excluir este plano? Todos os alunos vinculados a ele ficarão "Sem Plano" automaticamente. Esta ação não pode ser desfeita.')) return;
     try {
+      setLoading(true);
+      
+      // 1. Desvincular alunos que tenham este plano como ativo
+      const { error: profileError1 } = await supabase
+        .from('profiles')
+        .update({ plan_id: null, plan_status: 'nenhum' })
+        .eq('plan_id', id);
+      if (profileError1) throw profileError1;
+
+      // 2. Desvincular alunos que tenham este plano como pendente
+      const { error: profileError2 } = await supabase
+        .from('profiles')
+        .update({ pending_plan_id: null, plan_status: 'nenhum' })
+        .eq('pending_plan_id', id);
+      if (profileError2) throw profileError2;
+
+      // 3. Excluir o plano definitivamente
       const { error } = await supabase.from('plans').delete().eq('id', id);
       if (error) throw error;
+      
       setPlans(prev => prev.filter(p => p.id !== id));
       showSuccess('Plano removido com sucesso!');
     } catch (error: any) {
-      alert("Erro ao excluir: Verifique se existem alunos vinculados a este plano antes de excluir.");
+      console.error(error);
+      alert("Erro ao excluir: " + error.message);
+    } finally {
+      setLoading(false);
     }
   }
 
