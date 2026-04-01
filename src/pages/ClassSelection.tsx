@@ -114,19 +114,21 @@ export default function ClassSelection() {
         const { data, error } = await supabase
             .from('bookings')
             .select(`
+                id,
+                student_id,
                 profiles:student_id (
                     full_name,
                     avatar_url
                 )
             `)
             .eq('class_id', cls.id)
-            .neq('status', 'cancelado');
+            .eq('status', 'agendado');
 
         if (error) throw error;
         
         const students = data?.map((b: any) => ({
-            full_name: b.profiles.full_name,
-            avatar_url: b.profiles.avatar_url
+            full_name: b.profiles?.full_name || 'Aluno',
+            avatar_url: b.profiles?.avatar_url
         })) || [];
 
         setRoster({ className: cls.name, students });
