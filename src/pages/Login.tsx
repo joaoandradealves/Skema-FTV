@@ -52,7 +52,7 @@ export default function Login() {
   };
 
   return (
-    <WavyBackground topHeight="50%">
+    <WavyBackground topHeight="60%">
       <div className="flex flex-col relative" style={{ minHeight: '100vh' }}>
 
       <main className="relative z-20 flex-grow flex flex-col items-center px-8">
@@ -71,7 +71,7 @@ export default function Login() {
                 y: { duration: 6, repeat: Infinity, ease: "easeInOut" }
               }}
               alt="Skema Mermaid"
-              className="w-64 h-64 object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.3)] mb-4"
+              className="w-80 h-80 object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.3)] mb-4"
               src="/sereia.svg"
             />
             <header className="text-center">
@@ -85,7 +85,7 @@ export default function Login() {
           </div>
         </div>
 
-        <div className="mt-12 w-full flex flex-col items-center">
+        <div className="mt-40 w-full flex flex-col items-center">
         <AnimatePresence mode="wait">
           {step === 'splash' ? (
             <motion.div
@@ -174,7 +174,7 @@ export default function Login() {
         </AnimatePresence>
         </div>
 
-        <footer className="mt-8 text-center pb-8 relative z-20">
+        <footer className="mt-4 text-center pb-8 relative z-20">
           <p className="font-label font-medium text-sm text-on-surface">
             Não tem conta? <Link to="/register" className="font-bold underline decoration-2 underline-offset-4 decoration-[#006971]/30">Cadastre-se</Link>
           </p>
