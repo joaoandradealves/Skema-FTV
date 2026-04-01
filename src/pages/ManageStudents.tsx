@@ -389,7 +389,7 @@ export default function ManageStudents() {
                                             </span>
                                         </div>
                                         <p className="text-[9px] font-medium text-on-surface-variant mt-1">
-                                            {new Date(t.created_at).toLocaleDateString('pt-BR')} às {new Date(t.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                            {new Date(t.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                         </p>
                                     </div>
                                 ))}

@@ -174,7 +174,7 @@ export default function MyLoyalty() {
     };
 
     // Get unique tiers from rewards
-    const tiers = Array.from(new Set(rewards.map(r => r.points_cost))).sort((a: number, b: number) => a - b);
+    const tiers = Array.from(new Set(rewards.map(r => r.points_cost))).sort((a: any, b: any) => a - b) as number[];
     
     const filteredRewards = activeTier 
         ? rewards.filter(r => r.points_cost <= activeTier)
@@ -195,7 +195,7 @@ export default function MyLoyalty() {
                     <header className="px-6 pb-4 space-y-1">
                         <div className="flex items-center justify-between">
                             <h2 className="text-4xl font-black text-on-surface tracking-tight">
-                                {points.toLocaleString('pt-BR')} <span className="text-primary text-xl">pts.</span>
+                                {new Intl.NumberFormat('pt-BR').format(points)} <span className="text-primary text-xl">pts.</span>
                             </h2>
                             <button 
                                 onClick={fetchTransactions}
@@ -224,7 +224,7 @@ export default function MyLoyalty() {
                                     ${activeTier === tier ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-white text-on-surface-variant border-surface-container-highest'}
                                 `}
                             >
-                                Até {tier.toLocaleString('pt-BR')} pts
+                                Até {new Intl.NumberFormat('pt-BR').format(tier)} pts
                             </button>
                         ))}
                     </nav>
@@ -252,7 +252,7 @@ export default function MyLoyalty() {
                                                 `}>
                                                     {!canAfford && <span className="material-symbols-outlined text-[10px] font-black">lock</span>}
                                                     <span className="text-[10px] font-black uppercase tracking-tighter tabular-nums">
-                                                        {reward.points_cost.toLocaleString('pt-BR')} pts
+                                                        {new Intl.NumberFormat('pt-BR').format(reward.points_cost)} pts
                                                     </span>
                                                 </div>
 
@@ -321,7 +321,9 @@ export default function MyLoyalty() {
                                             <div key={tx.id} className="bg-white p-4 rounded-3xl border border-surface-container-highest flex items-center justify-between shadow-sm">
                                                 <div className="space-y-0.5">
                                                     <p className="text-[10px] font-black text-on-surface uppercase tracking-tight leading-tight">{tx.description || (tx.type === 'earn' ? 'Crédito de Pontos' : 'Resgate de Prêmio')}</p>
-                                                    <p className="text-[9px] font-bold text-on-surface-variant/60 uppercase">{new Date(tx.created_at).toLocaleDateString('pt-BR')}</p>
+                                                    <p className="text-[9px] font-bold text-on-surface-variant/60 uppercase">
+                                                        {new Date(tx.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                    </p>
                                                 </div>
                                                 <span className={`text-sm font-black tabular-nums ${tx.type === 'earn' ? 'text-primary' : 'text-error'}`}>
                                                     {tx.type === 'earn' ? '+' : '-'}{tx.amount}
