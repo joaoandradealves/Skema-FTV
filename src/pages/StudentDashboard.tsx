@@ -246,10 +246,20 @@ export default function StudentDashboard() {
 
   async function handleCancelDayUse() {
       if (!confirm('Deseja cancelar sua participação no Day Use? Os pontos serão estornados.')) return;
-      const { error } = await supabase.from('day_use_bookings').update({ status: 'cancelado' }).eq('id', selectedDayUse.id);
-      if (error) { alert('Erro ao cancelar: ' + error.message); return; }
-      alert('Day Use cancelado!');
-      window.location.reload();
+      try {
+          const { error } = await supabase
+            .from('day_use_bookings')
+            .update({ status: 'cancelado' })
+            .eq('id', selectedDayUse.id);
+            
+          if (error) throw error;
+          
+          alert('reserva cancelada com sucesso!');
+          setSelectedDayUse(null);
+          window.location.reload();
+      } catch (error: any) {
+          alert('Erro ao cancelar: ' + error.message);
+      }
   }
 
   async function handleBooking(cls: any) {
