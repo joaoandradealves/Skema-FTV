@@ -59,7 +59,7 @@ export default function StudentDashboard() {
           .from('court_rentals')
           .select('*')
           .or(`student_id.eq.${user.id},participants.cs.{${user.id}}`)
-          .neq('status', 'Cancelado')
+          .neq('status', 'cancelado')
           .order('rental_date', { ascending: true });
         setCourtRentals(rentalsData || []);
 
@@ -185,26 +185,35 @@ export default function StudentDashboard() {
   }
 
   async function removeParticipant(pId: string) {
-      const updatedParticipants = selectedRental.participants.filter((id: string) => id !== pId);
-      const { error } = await supabase.from('court_rentals').update({ participants: updatedParticipants }).eq('id', selectedRental.id);
-      if (error) { alert('Erro ao remover'); return; }
-      setRentalParticipants(rentalParticipants.filter(p => p.id !== pId));
-      setSelectedRental({ ...selectedRental, participants: updatedParticipants });
-      setCourtRentals(current => current.map(r => r.id === selectedRental.id ? { ...r, participants: updatedParticipants } : r));
+      try {
+          const updatedParticipants = selectedRental.participants.filter((id: string) => id !== pId);
+          const { error } = await supabase.from('court_rentals').update({ participants: updatedParticipants }).eq('id', selectedRental.id);
+          if (error) throw error;
+          setRentalParticipants(rentalParticipants.filter(p => p.id !== pId));
+          setSelectedRental({ ...selectedRental, participants: updatedParticipants });
+          setCourtRentals(current => current.map(r => r.id === selectedRental.id ? { ...r, participants: updatedParticipants } : r));
+      } catch (error: any) {
+          alert('Erro ao remover: ' + error.message);
+      }
   }
 
   async function handleCancelRental() {
-      const now = new Date();
-      const rentalTime = new Date(`${selectedRental.rental_date}T${selectedRental.start_time}`);
-      const hoursDiff = (rentalTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+      try {
+          const now = new Date();
+          const rentalTime = new Date(`${selectedRental.rental_date}T${selectedRental.start_time}`);
+          const hoursDiff = (rentalTime.getTime() - now.getTime()) / (1000 * 60 * 60);
 
-      if (hoursDiff < 2) { alert('Mínimo 2 horas para cancelar!'); return; }
-      if (!confirm('Deseja cancelar o aluguel? Todos os pontos serão estornados.')) return;
+          if (hoursDiff < 2) { alert('Mínimo 2 horas para cancelar!'); return; }
+          if (!confirm('Deseja cancelar o aluguel? Todos os pontos serão estornados.')) return;
 
-      const { error } = await supabase.from('court_rentals').update({ status: 'Cancelado' }).eq('id', selectedRental.id);
-      if (error) throw error;
-      alert('Aluguel cancelado!');
-      window.location.reload();
+          const { error } = await supabase.from('court_rentals').update({ status: 'cancelado' }).eq('id', selectedRental.id);
+          if (error) throw error;
+          alert('Aluguel cancelado!');
+          window.location.reload();
+      } catch (error: any) {
+          console.error(error);
+          alert('Erro ao cancelar aluguel: ' + error.message);
+      }
   }
 
   async function handleBooking(cls: any) {
