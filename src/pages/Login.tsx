@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { motion, AnimatePresence } from 'motion/react';
@@ -12,6 +12,26 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<'splash' | 'form'>('splash');
   const [loginRole, setLoginRole] = useState<'student' | 'teacher' | null>(null);
+
+  // Redirecionamento Automático se já houver sessão ativa
+  useEffect(() => {
+    async function checkSession() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setLoading(true);
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profile?.role === 'admin') navigate('/admin');
+        else if (profile?.role === 'teacher') navigate('/teacher');
+        else navigate('/student');
+      }
+    }
+    checkSession();
+  }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

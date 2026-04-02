@@ -7,4 +7,16 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('[SUPABASE ERROR] Chaves de ambiente não detectadas! Verifique o painel da Vercel.');
 }
 
-export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+// Detecta se o app está rodando de forma instalada (PWA Standalone)
+const isStandalone = typeof window !== 'undefined' && (
+  window.matchMedia('(display-mode: standalone)').matches || 
+  (window.navigator as any).standalone === true ||
+  document.referrer.includes('android-app://')
+);
+
+export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
+  auth: {
+    persistSession: isStandalone, // Persiste o login permanentemente apenas se for PWA instalado
+    autoRefreshToken: true,
+  }
+});
