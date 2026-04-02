@@ -36,7 +36,7 @@ export default function TeacherDashboard() {
             .from('classes')
             .select(`
               *,
-              bookings:bookings(count)
+              bookings:bookings(status)
             `)
             .eq('teacher_id', user.id)
             .order('start_time', { ascending: true });
@@ -107,7 +107,7 @@ export default function TeacherDashboard() {
            <div className="bg-white p-5 rounded-[28px] border border-primary-container/10 shadow-sm">
              <span className="material-symbols-outlined text-secondary text-2xl">person_check</span>
              <p className="font-headline font-black text-2xl mt-2 text-on-surface">
-                {classes.reduce((acc, cls) => acc + (cls.bookings[0]?.count || 0), 0)}
+                 {classes.reduce((acc, cls) => acc + (cls.bookings?.filter((b: any) => b.status === 'agendado').length || 0), 0)}
              </p>
              <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Alunos Hoje</p>
            </div>
@@ -151,7 +151,7 @@ export default function TeacherDashboard() {
                   </div>
                   <div className="flex items-center gap-1 bg-surface-container-high px-3 py-1.5 rounded-xl border border-outline-variant/10">
                     <span className="material-symbols-outlined text-[16px] opacity-40">groups</span>
-                    <span className="text-[11px] font-black">{cls.bookings[0]?.count || 0}/{cls.capacity}</span>
+                     <span className="text-[11px] font-black">{(cls.bookings?.filter((b: any) => b.status === 'agendado').length || 0)}/{cls.capacity}</span>
                   </div>
                 </div>
               );

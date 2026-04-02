@@ -48,7 +48,8 @@ export default function ClassManagement() {
           student_id,
           profiles:student_id (full_name, avatar_url)
         `)
-        .eq('class_id', id);
+        .eq('class_id', id)
+        .eq('status', 'agendado');
 
       if (bookingError) throw bookingError;
       setStudents(bookingData || []);
