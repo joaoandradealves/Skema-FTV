@@ -46,10 +46,11 @@ export default function ClassManagement() {
         .select(`
           id,
           student_id,
+          status,
           profiles:student_id (full_name, avatar_url)
         `)
         .eq('class_id', id)
-        .eq('status', 'agendado');
+        .in('status', ['agendado', 'falta']);
 
       if (bookingError) throw bookingError;
       setStudents(bookingData || []);
@@ -117,9 +118,24 @@ export default function ClassManagement() {
   }
 
   async function removeStudent(bookingId: string) {
-    if (!confirm('Tem certeza que deseja remover este aluno?')) return;
+    if (!confirm('Tem certeza que deseja REMOVER este aluno da lista? (O crédito volta para ele)')) return;
     try {
       const { error } = await supabase.from('bookings').delete().eq('id', bookingId);
+      if (error) throw error;
+      fetchClassData();
+    } catch (error: any) {
+      alert(error.message);
+    }
+  }
+
+  async function markAsNoShow(bookingId: string) {
+    if (!confirm('Deseja marcar FALTA para este aluno? (Isso estorna os pontos e NÃO devolve o crédito)')) return;
+    try {
+      const { error } = await supabase
+        .from('bookings')
+        .update({ status: 'falta' })
+        .eq('id', bookingId);
+      
       if (error) throw error;
       fetchClassData();
     } catch (error: any) {
@@ -186,16 +202,33 @@ export default function ClassManagement() {
                       )}
                    </div>
                    <div>
-                       <p className="font-bold text-on-surface">{booking.profiles.full_name}</p>
-                       <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Atleta</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-on-surface">{booking.profiles.full_name}</p>
+                          {booking.status === 'falta' && (
+                            <span className="px-2 py-0.5 bg-error/10 text-error text-[8px] font-black uppercase rounded-md border border-error/20">Falta</span>
+                          )}
+                        </div>
+                        <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Atleta</p>
                    </div>
                 </div>
-                <button 
-                  onClick={() => removeStudent(booking.id)}
-                  className="w-10 h-10 flex items-center justify-center text-error opacity-20 group-hover:opacity-100 hover:bg-error/10 rounded-xl transition-all"
-                >
-                  <span className="material-symbols-outlined">delete</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  {booking.status === 'agendado' && (
+                    <button 
+                      onClick={() => markAsNoShow(booking.id)}
+                      className="w-10 h-10 flex items-center justify-center text-warning opacity-40 hover:opacity-100 hover:bg-warning/10 rounded-xl transition-all"
+                      title="Marcar Falta"
+                    >
+                      <span className="material-symbols-outlined">person_off</span>
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => removeStudent(booking.id)}
+                    className="w-10 h-10 flex items-center justify-center text-error opacity-20 hover:opacity-100 hover:bg-error/10 rounded-xl transition-all"
+                    title="Remover permanentemente"
+                  >
+                    <span className="material-symbols-outlined">delete</span>
+                  </button>
+                </div>
               </div>
             ))}
             {students.length === 0 && (

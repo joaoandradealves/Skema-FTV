@@ -814,18 +814,20 @@ export default function StudentDashboard() {
                       </p>
                     </div>
                     <div className="text-right flex flex-col items-end gap-2">
-                        <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full ${isPast ? 'bg-surface-container-highest text-on-surface-variant' : 'text-secondary bg-secondary-container/30'}`}>
-                            {isPast ? 'FINALIZADO' : booking.status}
-                        </span>
-                        {!isPast && (
+                        <div className="flex flex-col gap-2">
+                          <div className={`px-4 py-2 rounded-full font-black text-[10px] uppercase tracking-widest text-center ${booking.status === 'falta' ? 'bg-error/10 text-error' : 'bg-primary/10 text-primary'}`}>
+                            {booking.status === 'falta' ? 'Falta Marcada' : 'Agendado'}
+                          </div>
+                          {booking.status !== 'falta' && !isPast && (
                             <button 
-                                onClick={() => handleCancelBooking(booking)}
-                                disabled={bookingLoading === booking.id}
-                                className="text-[9px] font-black uppercase text-error/60 hover:text-error transition-colors"
+                              onClick={() => handleCancelBooking(booking)}
+                              disabled={bookingLoading === booking.id}
+                              className="bg-surface-container-highest/50 hover:bg-error/10 hover:text-error text-on-surface-variant p-2 rounded-xl transition-all active:scale-95 disabled:opacity-50"
                             >
-                                {bookingLoading === booking.id ? '...' : 'Cancelar'}
+                              <span className="material-symbols-outlined text-lg">{bookingLoading === booking.id ? 'sync' : 'cancel'}</span>
                             </button>
-                        )}
+                          )}
+                        </div>
                     </div>
                   </div>
                 );
