@@ -18,28 +18,44 @@ export default function TopAppBar({
 }: TopAppBarProps) {
   const navigate = useNavigate();
 
+  const handleRefresh = () => {
+    // Adiciona uma pequena animação de escala e recarrega
+    window.location.reload();
+  };
+
   return (
     <header className="fixed top-0 w-full z-50 bg-transparent flex justify-between items-center px-6 h-16">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 overflow-hidden">
         {showBackButton ? (
           <button 
             onClick={() => navigate(-1)} 
-            className="w-10 h-10 -ml-2 flex items-center justify-center text-primary active:scale-95 transition-transform"
+            className="w-10 h-10 -ml-2 flex items-center justify-center text-primary active:scale-95 transition-transform shrink-0"
           >
             <span className="material-symbols-outlined font-black">arrow_back</span>
           </button>
         ) : (
-          <span className="material-symbols-outlined text-[#006971]">waves</span>
+          <span className="material-symbols-outlined text-[#006971] shrink-0">waves</span>
         )}
-        <h1 className="font-headline font-black tracking-widest text-[#006971] text-xs uppercase truncate max-w-[200px]">{title}</h1>
+        <h1 className="font-headline font-black tracking-widest text-[#006971] text-xs uppercase truncate max-w-[150px]">{title}</h1>
       </div>
-      <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-primary-container shrink-0">
-        <img
-          alt={avatarAlt}
-          className="w-full h-full object-cover"
-          src={avatarSrc}
-          referrerPolicy="no-referrer"
-        />
+
+      <div className="flex items-center gap-3">
+        <button 
+          onClick={handleRefresh}
+          className="w-10 h-10 flex items-center justify-center text-[#006971]/60 hover:text-[#006971] active:rotate-180 transition-all duration-500"
+          title="Sincronizar dados"
+        >
+          <span className="material-symbols-outlined font-bold text-xl">sync</span>
+        </button>
+
+        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-primary-container shrink-0 shadow-sm">
+          <img
+            alt={avatarAlt}
+            className="w-full h-full object-cover"
+            src={avatarSrc}
+            referrerPolicy="no-referrer"
+          />
+        </div>
       </div>
     </header>
   );
