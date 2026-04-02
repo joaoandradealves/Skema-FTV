@@ -179,7 +179,16 @@ export default function ManageTeachers() {
                     </div>
                     <div>
                       <p className="font-bold text-on-surface leading-tight">{teacher.full_name || 'Sem Nome'}</p>
-                      <p className="text-[10px] text-on-surface-variant font-medium">{teacher.email}</p>
+                      <div className="flex flex-col gap-0.5 mt-0.5">
+                        <p className="text-[10px] text-on-surface-variant font-medium flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[10px]">mail</span> {teacher.email}
+                        </p>
+                        {teacher.phone && (
+                          <p className="text-[10px] text-on-surface-variant font-medium flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[10px]">phone</span> {teacher.phone}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                   
