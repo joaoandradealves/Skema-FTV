@@ -27,6 +27,7 @@ import ManageStudents from './pages/ManageStudents';
 import ForgotPassword from './pages/ForgotPassword';
 import UpdatePassword from './pages/UpdatePassword';
 import ManageMarketing from './pages/ManageMarketing';
+import Ranking from './pages/Ranking';
 
 
 export default function App() {
@@ -36,6 +37,7 @@ export default function App() {
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/student" element={<StudentDashboard />} />
+        <Route path="/ranking" element={<Ranking />} />
         <Route path="/teacher" element={<TeacherDashboard />} />
         <Route path="/plans" element={<Plans />} />
         <Route path="/create-class" element={<CreateClass />} />

@@ -563,7 +563,6 @@ export default function StudentDashboard() {
             )}
           </section>
 
-          {/* 2. Skema Points Card (O FAVORITO) */}
           <Link to="/meu-pontos" className="block bg-[#1A1A1A] border-2 border-[#D4AF37]/30 p-6 rounded-[32px] shadow-xl group active:scale-95 transition-all overflow-hidden relative">
               <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 transform rotate-12 transition-all">
                   <span className="material-symbols-outlined text-[100px] text-[#D4AF37]">workspace_premium</span>
@@ -583,6 +582,23 @@ export default function StudentDashboard() {
                           <span className="text-3xl font-black text-[#D4AF37]">{loyaltyPoints}</span>
                           <span className="text-[10px] font-bold text-white/60">pts</span>
                       </div>
+                  </div>
+              </div>
+          </Link>
+
+          {/* 2.1 Ranking Preview Card (NEW) */}
+          <Link to="/ranking" className="block bg-white p-6 rounded-[32px] shadow-sm border border-primary-container/10 group active:scale-95 transition-all overflow-hidden relative">
+              <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-secondary/10 text-secondary rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <span className="material-symbols-outlined text-3xl">workspace_premium</span>
+                  </div>
+                  <div className="flex-1">
+                      <p className="text-[10px] font-black text-secondary-container uppercase tracking-widest">Desafio do Mês</p>
+                      <h4 className="font-headline font-black text-on-surface">Ranking de Feras</h4>
+                      <p className="text-[9px] font-bold text-on-surface-variant uppercase mt-0.5 opacity-60">Veja quem são os Top Alunos de {capitalizedMonth}</p>
+                  </div>
+                  <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-secondary group-hover:bg-secondary group-hover:text-white transition-all">
+                      <span className="material-symbols-outlined text-sm font-black">arrow_forward</span>
                   </div>
               </div>
           </Link>
