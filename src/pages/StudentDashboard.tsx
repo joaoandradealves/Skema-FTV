@@ -193,7 +193,7 @@ export default function StudentDashboard() {
 
         const { data } = await supabase
           .from('classes')
-          .select('*, teacher:teacher_id(full_name, email), bookings(status)')
+          .select('*, teacher:teacher_id(full_name, email), bookings(status), waitlist(status, student_id)')
           .gte('start_time', start.toISOString())
           .lte('start_time', end.toISOString())
           .order('start_time', { ascending: true });
@@ -354,6 +354,39 @@ export default function StudentDashboard() {
       const limit = profile.plan.classes_per_week;
       if (weeklyBookingsCount >= limit) { alert('Limite de aulas atingido!'); return; }
 
+      const bookedCount = (cls.bookings || []).filter((b: any) => b.status === 'agendado').length;
+      const capacity = cls.capacity || 8;
+
+      if (bookedCount >= capacity) {
+        const { data: existingWaitlist } = await supabase
+          .from('waitlist')
+          .select('id')
+          .eq('class_id', cls.id)
+          .eq('student_id', user.id)
+          .eq('status', 'waiting')
+          .single();
+
+        if (existingWaitlist) {
+          alert('Você já está na lista de espera para esta aula.');
+          return;
+        }
+
+        if (!confirm('Esta aula está lotada. Deseja entrar na lista de espera? Você será notificado se uma vaga abrir.')) return;
+
+        const { error: waitlistError } = await supabase
+          .from('waitlist')
+          .insert({
+            student_id: user.id,
+            class_id: cls.id,
+            status: 'waiting'
+          });
+
+        if (waitlistError) throw waitlistError;
+        alert('Você entrou na lista de espera!');
+        window.location.reload();
+        return;
+      }
+
       if (!confirm(`Confirmar futevôlei às ${new Date(cls.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}?`)) return;
 
       // 1. Verificar se já existe QUALQUER registro (inclusive cancelado)
@@ -500,15 +533,49 @@ export default function StudentDashboard() {
       });
 
       // Notificar Professor
-      if (booking.classes.teacher?.email) {
-        await notifyAdmin('teacher_booking_cancelled', {
-          teacher_email: booking.classes.teacher.email,
-          teacher_name: booking.classes.teacher.full_name,
-          student_name: profile.full_name,
-          class_name: booking.classes.name,
-          date: new Date(booking.classes.start_time).toLocaleDateString('pt-BR'),
-          time: new Date(booking.classes.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-        });
+      // 4. Promoção Automática da Lista de Espera Inteligente
+      const { data: nextInLine } = await supabase
+        .from('waitlist')
+        .select(`
+          id, 
+          student_id, 
+          profiles:student_id (
+            full_name, 
+            email
+          )
+        `)
+        .eq('class_id', booking.class_id)
+        .eq('status', 'waiting')
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (nextInLine) {
+        const { error: promoError } = await supabase
+          .from('bookings')
+          .insert({
+            student_id: nextInLine.student_id,
+            class_id: booking.class_id,
+            status: 'agendado',
+            plan_id: null
+          });
+
+        if (!promoError) {
+          await supabase
+            .from('waitlist')
+            .update({ status: 'booked' })
+            .eq('id', nextInLine.id);
+
+          const { notifyAdmin } = await import('../lib/notifications');
+          await notifyAdmin('waitlist_promoted', {
+            email: (nextInLine.profiles as any).email,
+            full_name: (nextInLine.profiles as any).full_name,
+            class_name: booking.classes.name,
+            date: new Date(booking.classes.start_time).toLocaleDateString('pt-BR'),
+            time: new Date(booking.classes.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+            court: booking.classes.court
+          });
+        }
       }
 
       window.location.reload();
@@ -793,6 +860,12 @@ export default function StudentDashboard() {
                 {dayClasses.map(cls => {
                     const isPast = new Date(cls.start_time) < new Date();
                     const isBooked = bookings.some(b => b.classes.id === cls.id && b.status === 'agendado');
+                    const bookedCount = (cls.bookings || []).filter((b: any) => b.status === 'agendado').length;
+                    const capacity = cls.capacity || 8;
+                    const isFull = bookedCount >= capacity;
+                    const waitlistCount = (cls.waitlist || []).filter((w: any) => w.status === 'waiting').length;
+                    const isUserInWaitlist = (cls.waitlist || []).some((w: any) => w.student_id === profile.id && w.status === 'waiting');
+
                     return (
                         <div key={cls.id} className={`bg-white p-5 rounded-[28px] border border-primary-container/10 shadow-sm flex items-center justify-between group transition-all ${isPast ? 'opacity-40 grayscale-[0.6]' : ''}`}>
                                 <div 
@@ -805,9 +878,14 @@ export default function StudentDashboard() {
                                     <div>
                                         <div className="flex items-center gap-2">
                                             <h5 className={`font-headline font-bold text-sm uppercase leading-none ${isPast ? 'text-on-surface-variant/40' : 'text-on-surface'}`}>{new Date(cls.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} • {cls.name}</h5>
-                                            {(cls.bookings || []).filter((b: any) => b.status === 'agendado').length > 0 && (
-                                                <span className="text-[9px] font-black bg-secondary/10 text-secondary px-1.5 py-0.5 rounded-md">
-                                                    {(cls.bookings || []).filter((b: any) => b.status === 'agendado').length}/{cls.capacity || 8}
+                                            {bookedCount > 0 && (
+                                                <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${isFull ? 'bg-error/10 text-error' : 'bg-secondary/10 text-secondary'}`}>
+                                                    {bookedCount}/{capacity}
+                                                </span>
+                                            )}
+                                            {waitlistCount > 0 && (
+                                                <span className="text-[9px] font-black bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-md">
+                                                    Fila: {waitlistCount}
                                                 </span>
                                             )}
                                         </div>
@@ -816,10 +894,10 @@ export default function StudentDashboard() {
                                 </div>
                             <button 
                                 onClick={() => !isPast && !isBooked && handleBooking(cls)} 
-                                disabled={isPast || bookingLoading === cls.id || isBooked} 
-                                className={`h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md transition-all ${isPast || isBooked ? 'bg-surface-container-highest text-on-surface-variant/40 cursor-not-allowed shadow-none' : 'bg-primary text-white active:scale-95'}`}
+                                disabled={isPast || bookingLoading === cls.id || isBooked || (isFull && isUserInWaitlist)} 
+                                className={`h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md transition-all ${isPast || (isBooked && !isUserInWaitlist) || (isFull && isUserInWaitlist) ? 'bg-surface-container-highest text-on-surface-variant/40 cursor-not-allowed shadow-none' : (isFull ? 'bg-orange-600 text-white active:scale-95' : 'bg-primary text-white active:scale-95')}`}
                             >
-                                {bookingLoading === cls.id ? '...' : (isBooked ? 'Agendado' : (isPast ? 'Encerrado' : 'Check-in'))}
+                                {bookingLoading === cls.id ? '...' : (isUserInWaitlist ? 'Na Fila' : (isBooked ? 'Agendado' : (isPast ? 'Encerrado' : (isFull ? 'Entrar na Fila' : 'Check-in'))))}
                             </button>
                         </div>
                     );

@@ -22,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { type, data } = req.body;
   const resendApiKey = process.env.RESEND_API_KEY;
   const adminEmail = 'joao.andrade.alves12@gmail.com';
-  
+
   if (!resendApiKey) {
     console.error('RESEND_API_KEY is missing');
     return res.status(500).json({ error: 'Mail service not configured' });
@@ -31,7 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let subject = '';
   let html = '';
 
-  const waLink = (phone: string, msg: string) => 
+  const waLink = (phone: string, msg: string) =>
     `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
 
   const header = `
@@ -229,6 +229,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               <p style="margin: 5px 0;">📅 <strong>Data:</strong> ${data.date}</p>
               <p style="margin: 5px 0;">⏰ <strong>Horário:</strong> ${data.time}</p>
             </div>
+          </div>
+          ${footer}
+        </div>
+      `;
+      break;
+    
+    case 'waitlist_promoted':
+      subject = `[SKEMA] 🎊 Sua vaga foi CONFIRMADA!`;
+      html = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border-radius: 20px; border: 1px solid #eee; overflow: hidden;">
+          <div style="background-color: #25D366; padding: 30px 20px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-family: sans-serif; font-size: 28px; font-weight: 800;">VAGA CONFIRMADA!</h1>
+          </div>
+          <div style="padding: 40px 30px;">
+            <p style="font-size: 16px; color: #444;">Boas notícias, <strong>${data.full_name}</strong>!</p>
+            <p style="font-size: 16px; color: #444;">Uma vaga abriu e você saiu da lista de espera. Seu check-in está **confirmado**!</p>
+            <div style="background: #f0fdf4; padding: 25px; border-radius: 20px; margin: 25px 0; border-left: 5px solid #25D366;">
+              <h3 style="margin: 0 0 10px 0; color: #333; font-size: 18px;">${data.class_name}</h3>
+              <p style="margin: 5px 0;">📅 <strong>Data:</strong> ${data.date}</p>
+              <p style="margin: 5px 0;">⏰ <strong>Horário:</strong> ${data.time}</p>
+              <p style="margin: 5px 0;">📍 <strong>Local:</strong> ${data.court}</p>
+            </div>
+            <p style="color: #666; font-size: 14px;">Nos encontramos na arena!</p>
           </div>
           ${footer}
         </div>
