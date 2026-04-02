@@ -34,6 +34,11 @@ export default function ManageLeisure() {
   const [successMsg, setSuccessMsg] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [editingOffer, setEditingOffer] = useState<any>(null);
+  const [managingParticipants, setManagingParticipants] = useState<any>(null);
+  const [participants, setParticipants] = useState<any[]>([]);
+  const [studentSearch, setStudentSearch] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
 
   // Form State for New Offer
   const [newOffer, setNewOffer] = useState({
@@ -158,6 +163,84 @@ export default function ManageLeisure() {
       setSuccessMsg(approve ? 'Day Use aprovado e e-mail enviado!' : 'Day Use recusado.');
       fetchData();
       setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (error: any) {
+      alert(error.message);
+    }
+  }
+
+  async function fetchParticipants(offerId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('day_use_bookings')
+        .select('*, student:student_id(full_name, avatar_url, email)')
+        .eq('offer_id', offerId)
+        .eq('status', 'aprovado');
+      if (error) throw error;
+      setParticipants(data || []);
+    } catch (error: any) {
+      console.error(error.message);
+    }
+  }
+
+  async function handleSearchStudents(query: string) {
+    setStudentSearch(query);
+    if (query.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    try {
+      setSearching(true);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url, email')
+        .eq('role', 'student')
+        .ilike('full_name', `%${query}%`)
+        .limit(5);
+      if (error) throw error;
+      setSearchResults(data || []);
+    } catch (error: any) {
+      console.error(error.message);
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  async function handleAddParticipant(studentId: string) {
+    if (!managingParticipants) return;
+    try {
+      setSubmitting(true);
+      const isAlreadyIn = participants.some(p => p.student_id === studentId);
+      if (isAlreadyIn) {
+        alert('Este aluno já está nesta oferta!');
+        return;
+      }
+
+      const { error } = await supabase.from('day_use_bookings').insert([{
+        student_id: studentId,
+        offer_id: managingParticipants.id,
+        price: managingParticipants.price,
+        status: 'aprovado'
+      }]);
+      
+      if (error) throw error;
+      setSuccessMsg('Aluno adicionado com sucesso!');
+      fetchParticipants(managingParticipants.id);
+      setSearchResults([]);
+      setStudentSearch('');
+    } catch (error: any) {
+      alert(error.message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleRemoveParticipant(bookingId: string) {
+    if (!confirm('Deseja remover este participante? Os pontos serão estornados.')) return;
+    try {
+      const { error } = await supabase.from('day_use_bookings').update({ status: 'cancelado' }).eq('id', bookingId);
+      if (error) throw error;
+      setSuccessMsg('Participante removido!');
+      if (managingParticipants) fetchParticipants(managingParticipants.id);
     } catch (error: any) {
       alert(error.message);
     }
@@ -342,6 +425,16 @@ export default function ManageLeisure() {
                                   {off.max_spots} VAGAS
                                </div>
                                <div className="flex gap-2">
+                                   <button 
+                                       onClick={() => { 
+                                           setManagingParticipants(off); 
+                                           fetchParticipants(off.id); 
+                                       }} 
+                                       className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-all"
+                                       title="Gerenciar Participantes"
+                                   >
+                                       <span className="material-symbols-outlined text-sm font-black">group</span>
+                                   </button>
                                    <button onClick={() => { setEditingOffer(off); setIsEditing(true); }} className="w-8 h-8 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center hover:bg-secondary hover:text-white transition-all">
                                        <span className="material-symbols-outlined text-sm font-black">edit</span>
                                    </button>
@@ -400,6 +493,98 @@ export default function ManageLeisure() {
                 </div>
             </div>
         )}
+
+        {/* Participants Modal Overlay */}
+        {managingParticipants && (
+            <div className="fixed inset-0 bg-secondary/40 backdrop-blur-md z-[110] flex items-end sm:items-center justify-center p-4">
+                <div className="bg-white w-full max-w-xl rounded-[40px] shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300 flex flex-col h-[85vh] sm:h-auto max-h-[90vh]">
+                   <div className="p-8 border-b border-primary-container/5 bg-surface-container/30">
+                       <div className="flex justify-between items-center mb-6">
+                           <div>
+                               <h3 className="font-headline font-black text-2xl text-on-surface uppercase italic tracking-tight">Gerenciar <span className="text-primary">Participantes</span></h3>
+                               <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">{new Date(managingParticipants.offer_date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+                           </div>
+                           <button onClick={() => setManagingParticipants(null)} className="w-10 h-10 rounded-full bg-white flex items-center justify-center material-symbols-outlined opacity-40">close</button>
+                       </div>
+
+                       {/* Search Box */}
+                       <div className="relative group">
+                           <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-on-surface-variant/30 text-lg">search</span>
+                           <input 
+                               type="text" 
+                               placeholder="Adicionar aluno pelo nome..." 
+                               value={studentSearch}
+                               onChange={(e) => handleSearchStudents(e.target.value)}
+                               className="w-full h-14 pl-12 pr-6 rounded-2xl bg-white border-2 border-primary-container/5 focus:border-primary/20 focus:ring-0 transition-all font-bold text-sm"
+                           />
+                           
+                           {/* Search Results Dropdown */}
+                           {searchResults.length > 0 && (
+                               <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-primary-container/10 overflow-hidden z-20">
+                                   {searchResults.map(s => (
+                                       <button 
+                                           key={s.id} 
+                                           onClick={() => handleAddParticipant(s.id)}
+                                           className="w-full p-4 flex items-center gap-4 hover:bg-primary/5 transition-all text-left border-b border-primary-container/5 last:border-0"
+                                       >
+                                           <div className="w-10 h-10 rounded-full overflow-hidden bg-surface-container">
+                                               <img src={s.avatar_url || 'https://via.placeholder.com/150'} alt={s.full_name} className="w-full h-full object-cover" />
+                                           </div>
+                                           <div>
+                                               <p className="font-bold text-sm text-on-surface">{s.full_name}</p>
+                                               <p className="text-[10px] font-medium text-on-surface-variant opacity-60 italic">{s.email}</p>
+                                           </div>
+                                           <span className="material-symbols-outlined ml-auto text-primary text-sm">add_circle</span>
+                                       </button>
+                                   ))}
+                               </div>
+                           )}
+                           {studentSearch.length >= 2 && searchResults.length === 0 && !searching && (
+                               <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl p-4 shadow-xl border text-center text-xs font-bold text-on-surface-variant/40">Nenhum aluno encontrado.</div>
+                           )}
+                       </div>
+                   </div>
+
+                   {/* Current Participants List */}
+                   <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                       <h4 className="text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-4 ml-2">Confirmados ({participants.length}/{managingParticipants.max_spots})</h4>
+                       <div className="space-y-3">
+                           {participants.length > 0 ? participants.map(p => (
+                               <div key={p.id} className="bg-surface-container/30 p-4 rounded-2xl flex items-center justify-between border border-primary-container/5 group transition-all hover:bg-white hover:shadow-md">
+                                   <div className="flex items-center gap-3">
+                                       <div className="w-10 h-10 rounded-xl overflow-hidden bg-white border-2 border-white shadow-sm">
+                                           <img src={p.student?.avatar_url || 'https://via.placeholder.com/150'} alt={p.student?.full_name} className="w-full h-full object-cover" />
+                                       </div>
+                                       <div>
+                                           <p className="font-bold text-sm text-on-surface">{p.student?.full_name}</p>
+                                           <p className="text-[10px] font-medium text-on-surface-variant/50">Confirmado em {new Date(p.created_at).toLocaleDateString('pt-BR')}</p>
+                                       </div>
+                                   </div>
+                                   <button 
+                                       onClick={() => handleRemoveParticipant(p.id)}
+                                       className="w-8 h-8 rounded-lg bg-error/10 text-error flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-error hover:text-white"
+                                   >
+                                       <span className="material-symbols-outlined text-sm">close</span>
+                                   </button>
+                               </div>
+                           )) : (
+                               <div className="py-10 text-center opacity-20 font-black text-xs uppercase tracking-widest">Nenhum participante ainda.</div>
+                           )}
+                       </div>
+                   </div>
+
+                   <div className="p-8 bg-surface-container/10 border-t border-primary-container/5">
+                       <p className="text-[10px] font-bold text-center text-on-surface-variant/40 italic">O saldo de pontos dos alunos é atualizado automaticamente ao entrar ou sair do Day Use.</p>
+                   </div>
+                </div>
+            </div>
+        )}
+
+        <style>{`
+            .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+            .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+            .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.05); border-radius: 10px; }
+        `}</style>
       </div>
     </WavyBackground>
   );
