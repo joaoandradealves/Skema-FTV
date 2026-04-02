@@ -430,10 +430,10 @@ export default function ManageLeisure() {
                                            setManagingParticipants(off); 
                                            fetchParticipants(off.id); 
                                        }} 
-                                       className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-all"
+                                       className="w-8 h-8 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center hover:bg-secondary hover:text-white transition-all"
                                        title="Gerenciar Participantes"
                                    >
-                                       <span className="material-symbols-outlined text-sm font-black">group</span>
+                                       <span className="material-symbols-outlined text-sm font-black">groups</span>
                                    </button>
                                    <button onClick={() => { setEditingOffer(off); setIsEditing(true); }} className="w-8 h-8 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center hover:bg-secondary hover:text-white transition-all">
                                        <span className="material-symbols-outlined text-sm font-black">edit</span>

@@ -13,7 +13,7 @@ export default function StudentDashboard() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [courtRentals, setCourtRentals] = useState<any[]>([]);
   const [dayUseBookings, setDayUseBookings] = useState<any[]>([]);
-  const [nextClass, setNextClass] = useState<any>(null);
+  const [nextActivity, setNextActivity] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [weeklyBookingsCount, setWeeklyBookingsCount] = useState(0);
   const [dayClasses, setDayClasses] = useState<any[]>([]);
@@ -99,6 +99,50 @@ export default function StudentDashboard() {
 
         const { data: pointsData } = await supabase.from('loyalty_points').select('balance').eq('user_id', user.id).single();
         setLoyaltyPoints(pointsData?.balance || 0);
+
+        // Calculate Next Activity
+        const allPotentialNext = [
+            ...(futureBookings || []).map((b: any) => ({
+                id: b.id,
+                type: 'AULA',
+                title: b.classes.name,
+                startTime: new Date(b.classes.start_time),
+                endTime: new Date(new Date(b.classes.start_time).getTime() + 60 * 60 * 1000), // assume 1h
+                location: b.classes.court,
+                icon: 'sports_volleyball',
+                color: 'bg-primary/10 text-primary',
+                raw: b
+            })),
+            ...(rentalsData || []).map((r: any) => ({
+                id: r.id,
+                type: 'ALUGUEL',
+                title: r.court_name,
+                startTime: new Date(`${r.rental_date}T${r.start_time}`),
+                endTime: new Date(`${r.rental_date}T${r.end_time}`),
+                location: 'Quadra Reservada',
+                icon: 'stadium',
+                color: 'bg-secondary/10 text-secondary',
+                raw: r
+            })),
+            ...(dayUseData || []).map((d: any) => ({
+                id: d.id,
+                type: 'DAY USE',
+                title: 'Acesso ao Clube',
+                startTime: new Date(`${d.day_use_offers?.offer_date}T${d.day_use_offers?.start_time}`),
+                endTime: new Date(`${d.day_use_offers?.offer_date}T${d.day_use_offers?.end_time}`),
+                location: 'Skema Beach Club',
+                icon: 'wb_sunny',
+                color: 'bg-orange-100 text-orange-600',
+                raw: d
+            }))
+        ].filter(e => e.startTime > new Date())
+         .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+
+        if (allPotentialNext.length > 0) {
+            setNextActivity(allPotentialNext[0]);
+        } else {
+            setNextActivity(null);
+        }
 
       } catch (error) {
         console.error(error);
@@ -475,6 +519,44 @@ export default function StudentDashboard() {
               </div>
           </Link>
 
+          {/* 2.5 Next Activity Card */}
+          {nextActivity && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white p-6 rounded-[32px] shadow-sm border border-primary-container/10 relative overflow-hidden group">
+                  <div className="absolute right-0 top-0 p-4 opacity-5 group-hover:opacity-10 transition-all">
+                      <span className="material-symbols-outlined text-6xl">{nextActivity.icon}</span>
+                  </div>
+                  <div className="flex items-center gap-4 relative z-10">
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${nextActivity.color}`}>
+                          <span className="material-symbols-outlined text-3xl font-black">{nextActivity.icon}</span>
+                      </div>
+                      <div className="flex-1">
+                          <p className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-[0.2em] mb-1">SUA PRÓXIMA ATIVIDADE</p>
+                          <h4 className="font-headline font-black text-xl text-on-surface leading-tight">{nextActivity.title}</h4>
+                          <div className="flex items-center gap-3 mt-2 text-xs font-bold text-on-surface-variant">
+                              <span className="flex items-center gap-1">
+                                  <span className="material-symbols-outlined text-sm">schedule</span>
+                                  {nextActivity.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                  <span className="material-symbols-outlined text-sm">calendar_month</span>
+                                  {nextActivity.startTime.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                              </span>
+                          </div>
+                      </div>
+                      <button 
+                         onClick={() => {
+                             if (nextActivity.type === 'AULA') fetchRoster(nextActivity.raw.classes);
+                             else if (nextActivity.type === 'ALUGUEL') openRentalModal(nextActivity.raw);
+                             else if (nextActivity.type === 'DAY USE') openDayUseModal(nextActivity.raw);
+                         }}
+                         className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center hover:bg-secondary hover:text-white transition-all shadow-sm"
+                      >
+                          <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                      </button>
+                  </div>
+              </motion.div>
+          )}
+
           {/* 3. Quick Actions */}
           <section className="grid grid-cols-2 gap-4">
              <Link to="/court-booking" className="bg-white p-6 rounded-[32px] shadow-sm border border-primary-container/10 flex flex-col items-center gap-3 active:scale-95 transition-all text-center group">
@@ -541,9 +623,11 @@ export default function StudentDashboard() {
                                   <span className="material-symbols-outlined font-black">wb_sunny</span>
                               </div>
                               <div className="flex-1">
-                                  <h5 className="font-headline font-black text-on-surface leading-tight uppercase text-sm">Reserva Solar</h5>
+                                  <h5 className="font-headline font-black text-on-surface leading-tight uppercase text-sm">DAY USE</h5>
                                   <p className="text-xs font-bold text-on-surface-variant tracking-tight mt-0.5">
-                                      {booking.day_use_offers ? new Date(booking.day_use_offers.offer_date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' }) : 'Data não definida'}
+                                      {booking.day_use_offers ? (
+                                          `${new Date(booking.day_use_offers.offer_date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })} • ${booking.day_use_offers.start_time.slice(0,5)} às ${booking.day_use_offers.end_time.slice(0,5)}`
+                                      ) : 'Data não definida'}
                                   </p>
                               </div>
                               <div className="text-right">
@@ -751,7 +835,7 @@ export default function StudentDashboard() {
                         <div className="flex items-center justify-between mb-8">
                             <div>
                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-secondary-container mb-1">Gerenciar Day Use</p>
-                                <h3 className="font-headline font-black text-3xl text-on-surface uppercase italic">SKEMA <span className="text-secondary">SOLAR</span></h3>
+                                <h3 className="font-headline font-black text-3xl text-on-surface uppercase italic">DAY <span className="text-secondary">USE</span></h3>
                             </div>
                             <div className="text-right">
                                 <h4 className="font-headline font-black text-secondary text-lg leading-none">{selectedDayUse.day_use_offers?.start_time.slice(0, 5)}</h4>
