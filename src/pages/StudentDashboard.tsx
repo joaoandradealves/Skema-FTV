@@ -544,7 +544,17 @@ export default function StudentDashboard() {
       <div className="pb-32 min-h-screen font-body relative">
         <TopAppBar title="SKEMA BEACH CLUB" avatarSrc={profile?.avatar_url} avatarAlt={profile?.full_name || "Perfil"} />
 
-        <main className="mt-20 px-6 max-w-2xl mx-auto space-y-8">
+        <main className="mt-20 px-6 max-w-2xl mx-auto space-y-10">
+          {/* Header Title */}
+          <div className="text-center space-y-2">
+            <h2 className="font-headline font-black text-4xl text-white uppercase italic tracking-tighter shadow-sm">
+              RANKING <span className="text-secondary">DE ELITE</span>
+            </h2>
+            <p className="text-white/60 font-black uppercase text-[10px] tracking-[0.3em]">
+              As maiores feras do Skema
+            </p>
+          </div>
+
           {/* 1. Welcome Header & Vagas */}
           <section className="flex justify-between items-start text-white">
             <div>
@@ -593,9 +603,9 @@ export default function StudentDashboard() {
                       <span className="material-symbols-outlined text-3xl">workspace_premium</span>
                   </div>
                   <div className="flex-1">
-                      <p className="text-[10px] font-black text-secondary-container uppercase tracking-widest">Desafio do Mês</p>
+                      <p className="text-[10px] font-black text-secondary-container uppercase tracking-widest">Desafio Permanente</p>
                       <h4 className="font-headline font-black text-on-surface">Ranking de Feras</h4>
-                      <p className="text-[9px] font-bold text-on-surface-variant uppercase mt-0.5 opacity-60">Veja quem são os Top Alunos de {capitalizedMonth}</p>
+                      <p className="text-[9px] font-bold text-on-surface-variant uppercase mt-0.5 opacity-60">Confira as maiores lendas da arena</p>
                   </div>
                   <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-secondary group-hover:bg-secondary group-hover:text-white transition-all">
                       <span className="material-symbols-outlined text-sm font-black">arrow_forward</span>
