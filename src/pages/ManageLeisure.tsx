@@ -32,6 +32,8 @@ export default function ManageLeisure() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingOffer, setEditingOffer] = useState<any>(null);
 
   // Form State for New Offer
   const [newOffer, setNewOffer] = useState({
@@ -76,19 +78,59 @@ export default function ManageLeisure() {
   }
 
   async function handleCreateOffer() {
-     try {
-       setSubmitting(true);
-       const { error } = await supabase.from('day_use_offers').insert([newOffer]);
-       if (error) throw error;
-       setSuccessMsg('Oferta de Day Use criada!');
-       setActiveTab('create-offer');
-       fetchData();
-       setTimeout(() => setSuccessMsg(''), 3000);
-     } catch (error: any) {
-       alert(error.message);
-     } finally {
-       setSubmitting(false);
-     }
+    try {
+      setSubmitting(true);
+      const { error } = await supabase.from('day_use_offers').insert([newOffer]);
+      if (error) throw error;
+      setSuccessMsg('Oferta de Day Use criada!');
+      setActiveTab('create-offer');
+      fetchData();
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (error: any) {
+      alert(error.message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleUpdateOffer() {
+    try {
+      setSubmitting(true);
+      const { error } = await supabase.from('day_use_offers').update({
+        offer_date: editingOffer.offer_date,
+        start_time: editingOffer.start_time,
+        end_time: editingOffer.end_time,
+        price: editingOffer.price,
+        max_spots: editingOffer.max_spots
+      }).eq('id', editingOffer.id);
+      
+      if (error) throw error;
+      setSuccessMsg('Oferta atualizada com sucesso!');
+      setIsEditing(false);
+      fetchData();
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (error: any) {
+      alert(error.message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleDeleteOffer(id: string) {
+    if (!confirm('Deseja excluir esta oferta? Todas as reservas vinculadas serão excluídas e os pontos serão estornados aos alunos.')) return;
+    try {
+      setLoading(true);
+      await supabase.from('day_use_bookings').delete().eq('offer_id', id);
+      const { error } = await supabase.from('day_use_offers').delete().eq('id', id);
+      if (error) throw error;
+      setSuccessMsg('Oferta excluída!');
+      fetchData();
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (error: any) {
+      alert(error.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleRentalAction(id: string, approve: boolean) {
@@ -289,14 +331,24 @@ export default function ManageLeisure() {
                    <section className="space-y-4">
                       <h3 className="font-headline font-black text-lg text-on-surface uppercase tracking-tight ml-2">Ofertas Ativas</h3>
                       {offers.length > 0 ? offers.map(off => (
-                        <div key={off.id} className="bg-surface-container-highest p-5 rounded-2xl border border-primary-container/10 flex justify-between items-center group">
+                        <div key={off.id} className="bg-surface-container-highest p-5 rounded-2xl border border-primary-container/10 flex justify-between items-center group relative overflow-hidden">
                             <div>
                                <p className="text-[10px] font-black text-secondary uppercase italic">{new Date(off.offer_date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long' })}</p>
                                <h5 className="font-headline font-black text-lg text-on-surface">{new Date(off.offer_date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}</h5>
                                <p className="text-xs font-bold text-on-surface-variant">{off.start_time.slice(0,5)} às {off.end_time.slice(0,5)} • R$ {off.price}</p>
                             </div>
-                            <div className="bg-white/50 px-3 py-1 rounded-full text-[10px] font-black text-secondary border border-secondary/10">
-                               {off.max_spots} VAGAS
+                            <div className="flex flex-col items-end gap-2">
+                               <div className="bg-white/50 px-3 py-1 rounded-full text-[10px] font-black text-secondary border border-secondary/10">
+                                  {off.max_spots} VAGAS
+                               </div>
+                               <div className="flex gap-2">
+                                   <button onClick={() => { setEditingOffer(off); setIsEditing(true); }} className="w-8 h-8 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center hover:bg-secondary hover:text-white transition-all">
+                                       <span className="material-symbols-outlined text-sm font-black">edit</span>
+                                   </button>
+                                   <button onClick={() => handleDeleteOffer(off.id)} className="w-8 h-8 rounded-lg bg-error/10 text-error flex items-center justify-center hover:bg-error hover:text-white transition-all">
+                                       <span className="material-symbols-outlined text-sm font-black">delete</span>
+                                   </button>
+                               </div>
                             </div>
                         </div>
                       )) : (
@@ -308,6 +360,46 @@ export default function ManageLeisure() {
             )}
           </div>
         </main>
+
+        {/* Edit Modal Overlay */}
+        {isEditing && editingOffer && (
+            <div className="fixed inset-0 bg-secondary/40 backdrop-blur-md z-[100] flex items-end sm:items-center justify-center p-4">
+                <div className="bg-white w-full max-w-md rounded-[40px] p-8 shadow-2xl space-y-6 animate-in slide-in-from-bottom duration-300">
+                   <div className="flex justify-between items-center">
+                       <h3 className="font-headline font-black text-2xl text-on-surface uppercase italic tracking-tight">Editar <span className="text-secondary">Oferta</span></h3>
+                       <button onClick={() => setIsEditing(false)} className="material-symbols-outlined text-on-surface-variant opacity-40">close</button>
+                   </div>
+
+                   <div className="grid grid-cols-2 gap-4">
+                       <div className="col-span-2">
+                          <label className="text-[10px] font-black text-on-surface-variant uppercase ml-2">Nova Data</label>
+                          <input type="date" value={editingOffer.offer_date} onChange={(e) => setEditingOffer({...editingOffer, offer_date: e.target.value})} className="w-full bg-surface-container border-none rounded-xl font-bold text-secondary" />
+                       </div>
+                       <div>
+                          <label className="text-[10px] font-black text-on-surface-variant uppercase ml-2">Início</label>
+                          <input type="time" value={editingOffer.start_time} onChange={(e) => setEditingOffer({...editingOffer, start_time: e.target.value})} className="w-full bg-surface-container border-none rounded-xl font-bold text-secondary" />
+                       </div>
+                       <div>
+                          <label className="text-[10px] font-black text-on-surface-variant uppercase ml-2">Fim</label>
+                          <input type="time" value={editingOffer.end_time} onChange={(e) => setEditingOffer({...editingOffer, end_time: e.target.value})} className="w-full bg-surface-container border-none rounded-xl font-bold text-secondary" />
+                       </div>
+                       <div>
+                          <label className="text-[10px] font-black text-on-surface-variant uppercase ml-2">Preço (R$)</label>
+                          <input type="number" value={editingOffer.price} onChange={(e) => setEditingOffer({...editingOffer, price: Number(e.target.value)})} className="w-full bg-surface-container border-none rounded-xl font-bold text-secondary" />
+                       </div>
+                       <div>
+                          <label className="text-[10px] font-black text-on-surface-variant uppercase ml-2">Vagas</label>
+                          <input type="number" value={editingOffer.max_spots} onChange={(e) => setEditingOffer({...editingOffer, max_spots: Number(e.target.value)})} className="w-full bg-surface-container border-none rounded-xl font-bold text-secondary" />
+                       </div>
+                   </div>
+
+                   <div className="flex flex-col gap-3 pt-4">
+                       <button disabled={submitting} onClick={handleUpdateOffer} className="w-full bg-secondary text-white py-4 rounded-2xl font-headline font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all">Salvar Alterações</button>
+                       <button onClick={() => setIsEditing(false)} className="w-full py-2 text-[10px] font-black uppercase text-on-surface-variant/40 tracking-widest">Cancelar</button>
+                   </div>
+                </div>
+            </div>
+        )}
       </div>
     </WavyBackground>
   );
