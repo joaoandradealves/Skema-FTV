@@ -17,6 +17,7 @@ export default function Ranking() {
   const navigate = useNavigate();
   const [ranking, setRanking] = useState<RankingUser[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,7 +25,16 @@ export default function Ranking() {
       try {
         setLoading(true);
         const { data: { user } } = await supabase.auth.getUser();
-        if (user) setCurrentUser(user);
+        if (user) {
+          setCurrentUser(user);
+          // Fetch user profile for TopAppBar avatar
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+          if (profileData) setProfile(profileData);
+        }
 
         const { data, error } = await supabase
           .from('monthly_ranking')
@@ -53,9 +63,19 @@ export default function Ranking() {
   return (
     <WavyBackground topHeight="20%">
       <div className="pb-32 min-h-screen font-body relative">
-        <TopAppBar title="RANKING MENSAL" />
+        <TopAppBar title="RANKING MENSAL" avatarSrc={profile?.avatar_url} avatarAlt={profile?.full_name || "Perfil"} />
 
-        <main className="mt-20 px-6 max-w-2xl mx-auto space-y-8">
+        <main className="mt-20 px-6 max-w-2xl mx-auto space-y-10">
+          {/* Header Title */}
+          <div className="text-center space-y-2">
+            <h2 className="font-headline font-black text-4xl text-white uppercase italic tracking-tighter shadow-sm">
+              RANKING <span className="text-secondary">DE ELITE</span>
+            </h2>
+            <p className="text-white/60 font-black uppercase text-[10px] tracking-[0.3em] font-body">
+              TOP FERAS - GERAL
+            </p>
+          </div>
+
           {/* 1. Welcome Header & Vagas */}
           <div className="flex items-end justify-center gap-2 pt-8">
             {/* 2nd Place */}
