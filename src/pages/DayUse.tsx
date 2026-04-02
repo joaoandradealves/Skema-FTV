@@ -57,7 +57,7 @@ export default function DayUse() {
       // Notify Admin
       notifyAdmin('day_use', {
         full_name: user.user_metadata?.full_name || 'Aluno',
-        offer_date: new Date(offer.offer_date).toLocaleDateString('pt-BR'),
+        offer_date: new Date(offer.offer_date + 'T00:00:00').toLocaleDateString('pt-BR'),
         price: offer.price
       });
 
@@ -103,10 +103,10 @@ export default function DayUse() {
                     >
                         <div>
                             <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${selectedOffer === off.id ? 'text-white/70' : 'text-secondary'}`}>
-                                {new Date(off.offer_date).toLocaleDateString('pt-BR', { weekday: 'long' })}
+                                {new Date(off.offer_date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long' })}
                             </p>
                             <h3 className="font-headline font-black text-xl tracking-tight">
-                                {new Date(off.offer_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
+                                {new Date(off.offer_date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
                             </h3>
                             <p className={`text-xs font-bold ${selectedOffer === off.id ? 'text-white/60' : 'text-on-surface-variant'}`}>
                                 {off.start_time.slice(0,5)} às {off.end_time.slice(0,5)}

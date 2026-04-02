@@ -181,7 +181,7 @@ export default function ManageLeisure() {
                            <div>
                               <p className="text-[10px] font-black text-secondary uppercase tracking-widest mb-1">{r.court_name}</p>
                               <h4 className="font-headline font-black text-xl text-on-surface leading-tight tracking-tight">{r.student?.full_name || 'Aluno Sem Nome'}</h4>
-                              <p className="text-[10px] font-bold text-on-surface-variant opacity-60 uppercase">{new Date(r.rental_date).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}</p>
+                              <p className="text-[10px] font-bold text-on-surface-variant opacity-60 uppercase">{new Date(r.rental_date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}</p>
                            </div>
                            <div className="bg-surface-container-highest px-4 py-2 rounded-2xl text-secondary font-black text-lg">R$ {r.total_price}</div>
                         </div>
@@ -209,7 +209,7 @@ export default function ManageLeisure() {
                               <p className="text-[10px] font-black text-secondary uppercase tracking-widest mb-1">Acesso ao Clube</p>
                               <h4 className="font-headline font-black text-xl text-on-surface leading-tight tracking-tight">{d.student?.full_name || 'Aluno Sem Nome'}</h4>
                               <p className="text-[10px] font-bold text-on-surface-variant opacity-60 uppercase">
-                                 Oferta para {new Date(d.offer?.offer_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
+                                 Oferta para {new Date(d.offer?.offer_date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
                               </p>
                            </div>
                            <div className="bg-surface-container-highest px-4 py-2 rounded-2xl text-secondary font-black text-lg">R$ {d.price}</div>
@@ -291,8 +291,8 @@ export default function ManageLeisure() {
                       {offers.length > 0 ? offers.map(off => (
                         <div key={off.id} className="bg-surface-container-highest p-5 rounded-2xl border border-primary-container/10 flex justify-between items-center group">
                             <div>
-                               <p className="text-[10px] font-black text-secondary uppercase italic">{new Date(off.offer_date).toLocaleDateString('pt-BR', { weekday: 'long' })}</p>
-                               <h5 className="font-headline font-black text-lg text-on-surface">{new Date(off.offer_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}</h5>
+                               <p className="text-[10px] font-black text-secondary uppercase italic">{new Date(off.offer_date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long' })}</p>
+                               <h5 className="font-headline font-black text-lg text-on-surface">{new Date(off.offer_date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}</h5>
                                <p className="text-xs font-bold text-on-surface-variant">{off.start_time.slice(0,5)} às {off.end_time.slice(0,5)} • R$ {off.price}</p>
                             </div>
                             <div className="bg-white/50 px-3 py-1 rounded-full text-[10px] font-black text-secondary border border-secondary/10">

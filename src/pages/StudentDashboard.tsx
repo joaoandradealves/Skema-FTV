@@ -12,6 +12,7 @@ export default function StudentDashboard() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [bookings, setBookings] = useState<any[]>([]);
   const [courtRentals, setCourtRentals] = useState<any[]>([]);
+  const [dayUseBookings, setDayUseBookings] = useState<any[]>([]);
   const [nextClass, setNextClass] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [weeklyBookingsCount, setWeeklyBookingsCount] = useState(0);
@@ -62,6 +63,14 @@ export default function StudentDashboard() {
           .neq('status', 'cancelado')
           .order('rental_date', { ascending: true });
         setCourtRentals(rentalsData || []);
+
+        const { data: dayUseData } = await supabase
+          .from('day_use_bookings')
+          .select('*, day_use_offers(*)')
+          .eq('student_id', user.id)
+          .neq('status', 'cancelado')
+          .order('created_at', { ascending: false });
+        setDayUseBookings(dayUseData || []);
 
         const now = new Date();
         let cycleCount = 0;
@@ -478,6 +487,38 @@ export default function StudentDashboard() {
                   }) : (
                       <div className="text-center py-10 bg-white/30 rounded-[32px] border-2 border-dashed border-primary-container/10">
                            <p className="text-on-surface-variant text-[10px] font-black uppercase tracking-widest opacity-40 italic">Nenhuma quadra reservada.</p>
+                      </div>
+                  )}
+              </div>
+          </section>
+
+          {/* 4.5. Day Use Section */}
+          <section className="space-y-6">
+              <h4 className="font-headline font-extrabold text-2xl tracking-tight uppercase underline decoration-primary decoration-4 underline-offset-8 mb-8">Meus Day Use</h4>
+              <div className="space-y-4">
+                  {dayUseBookings.length > 0 ? dayUseBookings.map(booking => {
+                      const isPast = booking.day_use_offers ? new Date(booking.day_use_offers.offer_date + 'T00:00:00') < new Date() : false;
+                      return (
+                          <div key={booking.id} className={`bg-white p-6 rounded-[32px] border-2 border-primary-container/10 shadow-sm flex items-center gap-4 text-left transition-all ${isPast ? 'opacity-40 grayscale-[0.6]' : ''}`}>
+                              <div className="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center">
+                                  <span className="material-symbols-outlined font-black">wb_sunny</span>
+                              </div>
+                              <div className="flex-1">
+                                  <h5 className="font-headline font-black text-on-surface leading-tight uppercase text-sm">Reserva Solar</h5>
+                                  <p className="text-xs font-bold text-on-surface-variant tracking-tight mt-0.5">
+                                      {booking.day_use_offers ? new Date(booking.day_use_offers.offer_date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' }) : 'Data não definida'}
+                                  </p>
+                              </div>
+                              <div className="text-right">
+                                  <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-full ${isPast ? 'bg-surface-container-highest text-on-surface-variant' : (booking.status === 'aprovado' ? 'bg-primary/10 text-primary' : 'bg-orange-100 text-orange-600 animate-pulse')}`}>
+                                      {isPast ? 'FINALIZADO' : (booking.status === 'aprovado' ? 'APROVADO' : 'AGUARDANDO')}
+                                  </span>
+                              </div>
+                          </div>
+                      );
+                  }) : (
+                      <div className="text-center py-10 bg-white/30 rounded-[32px] border-2 border-dashed border-primary-container/10">
+                           <p className="text-on-surface-variant text-[10px] font-black uppercase tracking-widest opacity-40 italic">Nenhum Day Use solicitado.</p>
                       </div>
                   )}
               </div>
