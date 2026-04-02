@@ -1,7 +1,20 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
+import { registerSW } from 'virtual:pwa-register';
 import './index.css';
+
+// Registrar o Service Worker do PWA
+if (typeof window !== 'undefined') {
+  registerSW({
+    onNeedRefresh() {
+      console.log('[PWA] Nova versão disponível. Por favor, recarregue.');
+    },
+    onOfflineReady() {
+      console.log('[PWA] O app está pronto para uso offline.');
+    },
+  });
+}
 
 console.log('[MAIN] Iniciando processo de renderização do React...');
 

@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import WavyBackground from '../components/WavyBackground';
 import { motion, AnimatePresence } from 'framer-motion';
 import MarketingModal from '../components/MarketingModal';
+import PWAInstallPrompt from '../components/PWAInstallPrompt';
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
@@ -1006,6 +1007,8 @@ export default function StudentDashboard() {
             message={marketingMessage} 
         />
       </div>
+
+      <PWAInstallPrompt />
     </WavyBackground>
   );
 }
