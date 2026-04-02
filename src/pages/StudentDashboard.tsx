@@ -31,6 +31,11 @@ export default function StudentDashboard() {
   const [rentalSearchTerm, setRentalSearchTerm] = useState('');
   const [rentalSearchResults, setRentalSearchResults] = useState<any[]>([]);
   const [isRentalSearching, setIsRentalSearching] = useState(false);
+  
+  // Day Use Management States
+  const [selectedDayUse, setSelectedDayUse] = useState<any>(null);
+  const [dayUseParticipants, setDayUseParticipants] = useState<any[]>([]);
+  const [isDayUseModalOpen, setIsDayUseModalOpen] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -223,6 +228,28 @@ export default function StudentDashboard() {
           console.error(error);
           alert('Erro ao cancelar aluguel: ' + error.message);
       }
+  }
+
+  async function openDayUseModal(booking: any) {
+      setSelectedDayUse(booking);
+      setIsDayUseModalOpen(true);
+      setDayUseParticipants([]);
+      const { data } = await supabase
+        .from('day_use_bookings')
+        .select('profiles:student_id(id, full_name, avatar_url)')
+        .eq('offer_id', booking.offer_id)
+        .eq('status', 'aprovado');
+      
+      const participants = data?.map((d: any) => d.profiles) || [];
+      setDayUseParticipants(participants);
+  }
+
+  async function handleCancelDayUse() {
+      if (!confirm('Deseja cancelar sua participação no Day Use? Os pontos serão estornados.')) return;
+      const { error } = await supabase.from('day_use_bookings').update({ status: 'cancelado' }).eq('id', selectedDayUse.id);
+      if (error) { alert('Erro ao cancelar: ' + error.message); return; }
+      alert('Day Use cancelado!');
+      window.location.reload();
   }
 
   async function handleBooking(cls: any) {
@@ -499,8 +526,8 @@ export default function StudentDashboard() {
                   {dayUseBookings.length > 0 ? dayUseBookings.map(booking => {
                       const isPast = booking.day_use_offers ? new Date(booking.day_use_offers.offer_date + 'T00:00:00') < new Date() : false;
                       return (
-                          <div key={booking.id} className={`bg-white p-6 rounded-[32px] border-2 border-primary-container/10 shadow-sm flex items-center gap-4 text-left transition-all ${isPast ? 'opacity-40 grayscale-[0.6]' : ''}`}>
-                              <div className="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center">
+                          <button key={booking.id} onClick={() => openDayUseModal(booking)} className={`w-full bg-white p-6 rounded-[32px] border-2 border-primary-container/10 shadow-sm flex items-center gap-4 text-left transition-all active:scale-[0.98] group ${isPast ? 'opacity-40 grayscale-[0.6]' : ''}`}>
+                              <div className="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center group-hover:bg-orange-600 group-hover:text-white transition-all">
                                   <span className="material-symbols-outlined font-black">wb_sunny</span>
                               </div>
                               <div className="flex-1">
@@ -514,7 +541,7 @@ export default function StudentDashboard() {
                                       {isPast ? 'FINALIZADO' : (booking.status === 'aprovado' ? 'APROVADO' : 'AGUARDANDO')}
                                   </span>
                               </div>
-                          </div>
+                          </button>
                       );
                   }) : (
                       <div className="text-center py-10 bg-white/30 rounded-[32px] border-2 border-dashed border-primary-container/10">
@@ -696,6 +723,51 @@ export default function StudentDashboard() {
                             <div className="pt-8 flex flex-col gap-4">
                                 <button onClick={handleCancelRental} className="w-full h-16 bg-error/10 text-error rounded-3xl font-headline font-black uppercase tracking-widest text-xs">Cancelar Aluguel</button>
                                 <button onClick={() => setIsRentalModalOpen(false)} className="w-full h-12 text-on-surface-variant/40 font-black uppercase tracking-widest text-[10px]">Fechar</button>
+                            </div>
+                        </div>
+                    </motion.div>
+                </>
+            )}
+        </AnimatePresence>
+
+        {/* Modal: Day Use Management */}
+        <AnimatePresence>
+            {isDayUseModalOpen && selectedDayUse && (
+                <>
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsDayUseModalOpen(false)} className="fixed inset-0 bg-secondary/40 backdrop-blur-md z-[80]" />
+                    <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 300 }} className="fixed inset-x-0 bottom-0 bg-white rounded-t-[40px] z-[90] p-8 pb-12 max-h-[85vh] overflow-y-auto shadow-2xl">
+                        <div className="w-12 h-1.5 bg-surface-container rounded-full mx-auto mb-8 opacity-40" />
+                        
+                        <div className="flex items-center justify-between mb-8">
+                            <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-secondary-container mb-1">Gerenciar Day Use</p>
+                                <h3 className="font-headline font-black text-3xl text-on-surface uppercase italic">SKEMA <span className="text-secondary">SOLAR</span></h3>
+                            </div>
+                            <div className="text-right">
+                                <h4 className="font-headline font-black text-secondary text-lg leading-none">{selectedDayUse.day_use_offers?.start_time.slice(0, 5)}</h4>
+                                <p className="text-[10px] font-bold text-on-surface-variant uppercase">{selectedDayUse.day_use_offers ? new Date(selectedDayUse.day_use_offers.offer_date + 'T00:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' }) : 'Dia Confirmado'}</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            <h4 className="font-headline font-black text-sm uppercase tracking-widest text-on-surface/50">Quem vai estar lá ☀️</h4>
+                            <div className="space-y-3">
+                                {dayUseParticipants.length > 0 ? dayUseParticipants.map((p, idx) => (
+                                    <div key={idx} className="flex items-center gap-4 bg-white p-4 rounded-2xl border border-primary-container/10 shadow-sm">
+                                        <div className="w-10 h-10 rounded-full overflow-hidden bg-primary/10">
+                                            {p.avatar_url ? <img src={p.avatar_url} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-primary font-bold">{p.full_name?.charAt(0) || 'S'}</div>}
+                                        </div>
+                                        <span className="font-bold text-sm uppercase flex-1">{p.full_name} {p.id === profile.id && '(Você)'}</span>
+                                        {p.id === profile.id && <span className="text-[9px] font-black uppercase text-secondary/60">Titular</span>}
+                                    </div>
+                                )) : (
+                                    <div className="text-center py-6 opacity-40 text-[10px] font-black uppercase tracking-widest italic">Aguardando participantes...</div>
+                                )}
+                            </div>
+
+                            <div className="pt-8 flex flex-col gap-4">
+                                <button onClick={handleCancelDayUse} className="w-full h-16 bg-error/10 text-error rounded-3xl font-headline font-black uppercase tracking-widest text-xs">Cancelar Minha Reserva</button>
+                                <button onClick={() => setIsDayUseModalOpen(false)} className="w-full h-12 text-on-surface-variant/40 font-black uppercase tracking-widest text-[10px]">Fechar</button>
                             </div>
                         </div>
                     </motion.div>
