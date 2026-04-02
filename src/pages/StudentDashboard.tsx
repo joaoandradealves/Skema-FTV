@@ -58,7 +58,7 @@ export default function StudentDashboard() {
 
         const { data: bookingsData } = await supabase
           .from('bookings')
-          .select(`id, status, plan_id, classes:class_id (*)`)
+          .select(`id, status, plan_id, classes:class_id (*, teacher:teacher_id(full_name, email))`)
           .eq('student_id', user.id)
           .neq('status', 'cancelado')
           .order('created_at', { ascending: false });
@@ -192,7 +192,7 @@ export default function StudentDashboard() {
 
         const { data } = await supabase
           .from('classes')
-          .select('*, teacher:teacher_id(full_name), bookings(status)')
+          .select('*, teacher:teacher_id(full_name, email), bookings(status)')
           .gte('start_time', start.toISOString())
           .lte('start_time', end.toISOString())
           .order('start_time', { ascending: true });
@@ -391,6 +391,8 @@ export default function StudentDashboard() {
 
       // Enviar e-mail de confirmação para o aluno
       const { notifyAdmin } = await import('../lib/notifications');
+      
+      // Notificar Aluno
       await notifyAdmin('booking_confirmed', {
         email: profile.email,
         full_name: profile.full_name,
@@ -399,6 +401,18 @@ export default function StudentDashboard() {
         time: new Date(cls.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
         court: cls.court
       });
+
+      // Notificar Professor (se o e-mail estiver disponível)
+      if (cls.teacher?.email) {
+        await notifyAdmin('teacher_new_student', {
+          teacher_email: cls.teacher.email,
+          teacher_name: cls.teacher.full_name,
+          student_name: profile.full_name,
+          class_name: cls.name,
+          date: new Date(cls.start_time).toLocaleDateString('pt-BR'),
+          time: new Date(cls.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+        });
+      }
 
       // Se o plano for do tipo 'avulso', consumimos ele imediatamente
       if (profile.plan?.type === 'avulso') {
@@ -470,6 +484,30 @@ export default function StudentDashboard() {
           }
       } else {
           alert('Check-in cancelado com sucesso!');
+      }
+      
+      // 3. Notificar Aluno e Professor sobre o cancelamento
+      const { notifyAdmin } = await import('../lib/notifications');
+      
+      // Notificar Aluno
+      await notifyAdmin('booking_cancelled', {
+        email: profile.email,
+        full_name: profile.full_name,
+        class_name: booking.classes.name,
+        date: new Date(booking.classes.start_time).toLocaleDateString('pt-BR'),
+        time: new Date(booking.classes.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+      });
+
+      // Notificar Professor
+      if (booking.classes.teacher?.email) {
+        await notifyAdmin('teacher_booking_cancelled', {
+          teacher_email: booking.classes.teacher.email,
+          teacher_name: booking.classes.teacher.full_name,
+          student_name: profile.full_name,
+          class_name: booking.classes.name,
+          date: new Date(booking.classes.start_time).toLocaleDateString('pt-BR'),
+          time: new Date(booking.classes.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+        });
       }
 
       window.location.reload();

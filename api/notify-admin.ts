@@ -23,10 +23,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const resendApiKey = process.env.RESEND_API_KEY;
   const adminEmail = 'joao.andrade.alves12@gmail.com';
   
-  // Se a notificação for para aluno, o destino é o e-mail dele. 
-  // Caso contrário (cadastro novo, day use, etc), o destino é o admin.
-  const recipient = data.email || adminEmail;
-
   if (!resendApiKey) {
     console.error('RESEND_API_KEY is missing');
     return res.status(500).json({ error: 'Mail service not configured' });
@@ -175,9 +171,75 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `;
       break;
 
+    case 'teacher_new_student':
+      subject = `[SKEMA] 🎾 Novo Aluno na sua Aula!`;
+      html = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border-radius: 20px; border: 1px solid #eee; overflow: hidden;">
+          <div style="background-color: #006971; padding: 30px 20px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-family: sans-serif; font-size: 24px; font-weight: 800;">NOVO ALUNO AGENDADO</h1>
+          </div>
+          <div style="padding: 40px 30px;">
+            <p style="font-size: 16px; color: #444;">Olá Professor <strong>${data.teacher_name}</strong>, você tem um novo aluno para a próxima aula!</p>
+            <div style="background: #f0f7f8; padding: 25px; border-radius: 20px; margin: 25px 0; border-left: 5px solid #006971;">
+              <h3 style="margin: 0 0 10px 0; color: #333; font-size: 18px;">${data.class_name}</h3>
+              <p style="margin: 5px 0;">👤 <strong>Aluno:</strong> ${data.student_name}</p>
+              <p style="margin: 5px 0;">📅 <strong>Data:</strong> ${data.date}</p>
+              <p style="margin: 5px 0;">⏰ <strong>Horário:</strong> ${data.time}</p>
+            </div>
+            <p style="color: #888; font-size: 13px;">Prepare a areia e boa aula!</p>
+          </div>
+          ${footer}
+        </div>
+      `;
+      break;
+
+    case 'booking_cancelled':
+      subject = `[SKEMA] ❌ Check-in Cancelado`;
+      html = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border-radius: 20px; border: 1px solid #eee; overflow: hidden;">
+          <div style="background-color: #666; padding: 30px 20px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-family: sans-serif; font-size: 24px; font-weight: 800;">CHECK-IN CANCELADO</h1>
+          </div>
+          <div style="padding: 40px 30px;">
+            <p style="font-size: 16px; color: #444;">Olá <strong>${data.full_name}</strong>, seu check-in foi cancelado com sucesso.</p>
+            <div style="background: #f9f9f9; padding: 25px; border-radius: 20px; margin: 25px 0; border-left: 5px solid #666;">
+              <h3 style="margin: 0 0 10px 0; color: #333; font-size: 18px;">${data.class_name}</h3>
+              <p style="margin: 5px 0;">📅 <strong>Data:</strong> ${data.date}</p>
+              <p style="margin: 5px 0;">⏰ <strong>Horário:</strong> ${data.time}</p>
+            </div>
+            <p style="color: #888; font-size: 13px;">Seus créditos foram devolvidos conforme a política de cancelamento.</p>
+          </div>
+          ${footer}
+        </div>
+      `;
+      break;
+
+    case 'teacher_booking_cancelled':
+      subject = `[SKEMA] ⚠️ Um aluno cancelou o check-in`;
+      html = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border-radius: 20px; border: 1px solid #eee; overflow: hidden;">
+          <div style="background-color: #ba1a1a; padding: 30px 20px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-family: sans-serif; font-size: 24px; font-weight: 800;">ALUNO CANCELOU</h1>
+          </div>
+          <div style="padding: 40px 30px;">
+            <p style="font-size: 16px; color: #444;">Olá Professor <strong>${data.teacher_name}</strong>, um aluno cancelou a vaga na sua aula.</p>
+            <div style="background: #fffbfa; padding: 25px; border-radius: 20px; margin: 25px 0; border-left: 5px solid #ba1a1a;">
+              <h3 style="margin: 0 0 10px 0; color: #333; font-size: 18px;">${data.class_name}</h3>
+              <p style="margin: 5px 0;">👤 <strong>Aluno:</strong> ${data.student_name}</p>
+              <p style="margin: 5px 0;">📅 <strong>Data:</strong> ${data.date}</p>
+              <p style="margin: 5px 0;">⏰ <strong>Horário:</strong> ${data.time}</p>
+            </div>
+          </div>
+          ${footer}
+        </div>
+      `;
+      break;
+
     default:
       return res.status(400).json({ error: 'Invalid notification type' });
   }
+
+  const recipient = (type === 'teacher_new_student' || type === 'teacher_booking_cancelled') ? data.teacher_email : (data.email || adminEmail);
 
   try {
     const response = await fetch('https://api.resend.com/emails', {
@@ -187,8 +249,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         'Authorization': `Bearer ${resendApiKey}`
       },
       body: JSON.stringify({
-        from: 'Skema Beach Club <onboarding@resend.dev>',
-        to: [recipient],
+        from: 'Skema Beach Club <contato@skemaftv.com.br>',
+        to: Array.isArray(recipient) ? recipient : [recipient],
         subject: subject,
         html: html
       })
