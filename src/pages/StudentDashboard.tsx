@@ -544,17 +544,7 @@ export default function StudentDashboard() {
       <div className="pb-32 min-h-screen font-body relative">
         <TopAppBar title="SKEMA BEACH CLUB" avatarSrc={profile?.avatar_url} avatarAlt={profile?.full_name || "Perfil"} />
 
-        <main className="mt-20 px-6 max-w-2xl mx-auto space-y-10">
-          {/* Header Title */}
-          <div className="text-center space-y-2">
-            <h2 className="font-headline font-black text-4xl text-white uppercase italic tracking-tighter shadow-sm">
-              RANKING <span className="text-secondary">DE ELITE</span>
-            </h2>
-            <p className="text-white/60 font-black uppercase text-[10px] tracking-[0.3em]">
-              As maiores feras do Skema
-            </p>
-          </div>
-
+        <main className="mt-20 px-6 max-w-2xl mx-auto space-y-8">
           {/* 1. Welcome Header & Vagas */}
           <section className="flex justify-between items-start text-white">
             <div>
