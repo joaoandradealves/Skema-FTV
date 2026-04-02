@@ -92,10 +92,6 @@ export default function StudentDashboard() {
         }
         setWeeklyBookingsCount(cycleCount);
 
-        const future = (bookingsData || [])
-          .filter((b: any) => new Date(b.classes.start_time) > new Date() && b.status === 'agendado')
-          .sort((a: any, b: any) => new Date(a.classes.start_time).getTime() - new Date(b.classes.start_time).getTime());
-        if (future.length > 0) setNextClass(future[0].classes);
 
         const { data: pointsData } = await supabase.from('loyalty_points').select('balance').eq('user_id', user.id).single();
         setLoyaltyPoints(pointsData?.balance || 0);
