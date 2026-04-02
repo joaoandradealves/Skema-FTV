@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import WavyBackground from '../components/WavyBackground';
 import { motion, AnimatePresence } from 'framer-motion';
+import MarketingModal from '../components/MarketingModal';
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
@@ -36,6 +37,10 @@ export default function StudentDashboard() {
   const [selectedDayUse, setSelectedDayUse] = useState<any>(null);
   const [dayUseParticipants, setDayUseParticipants] = useState<any[]>([]);
   const [isDayUseModalOpen, setIsDayUseModalOpen] = useState(false);
+
+  // Marketing States
+  const [marketingMessage, setMarketingMessage] = useState<any>(null);
+  const [isMarketingModalOpen, setIsMarketingModalOpen] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -147,6 +152,34 @@ export default function StudentDashboard() {
       }
     }
     fetchData();
+  }, []);
+
+  // Marketing Logic: Show once per day
+  useEffect(() => {
+     async function checkMarketing() {
+         try {
+             const lastShow = localStorage.getItem('skema_last_marketing_show');
+             const today = new Date().toISOString().split('T')[0];
+
+             if (lastShow !== today) {
+                 const { data, error } = await supabase
+                     .from('marketing_messages')
+                     .select('*')
+                     .eq('is_active', true);
+                 
+                 if (!error && data && data.length > 0) {
+                     // Pick a random active message
+                     const randomMsg = data[Math.floor(Math.random() * data.length)];
+                     setMarketingMessage(randomMsg);
+                     setIsMarketingModalOpen(true);
+                     localStorage.setItem('skema_last_marketing_show', today);
+                 }
+             }
+         } catch (e) {
+             console.error('Marketing error:', e);
+         }
+     }
+     checkMarketing();
   }, []);
 
   useEffect(() => {
@@ -589,7 +622,7 @@ export default function StudentDashboard() {
                               <div className="flex-1">
                                   <h5 className="font-headline font-black text-on-surface leading-tight uppercase text-sm">{rental.court_name}</h5>
                                   <p className="text-xs font-bold text-on-surface-variant tracking-tight mt-0.5">
-                                      {new Date(rental.rental_date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })} • {rental.start_time.slice(0, 5)}
+                                      {new Date(rental.rental_date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })} • {rental.start_time.slice(0, 5)} às {rental.end_time.slice(0, 5)}
                                   </p>
                               </div>
                               <div className="text-right">
@@ -755,7 +788,7 @@ export default function StudentDashboard() {
                                 <h3 className="font-headline font-black text-3xl text-on-surface uppercase">{selectedRental.court_name}</h3>
                             </div>
                             <div className="text-right">
-                                <h4 className="font-headline font-black text-secondary text-lg leading-none">{selectedRental.start_time.slice(0, 5)}</h4>
+                                <h4 className="font-headline font-black text-secondary text-lg leading-none">{selectedRental.start_time.slice(0, 5)} às {selectedRental.end_time.slice(0, 5)}</h4>
                                 <p className="text-[10px] font-bold text-on-surface-variant uppercase">{new Date(selectedRental.rental_date + 'T00:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}</p>
                             </div>
                         </div>
@@ -928,6 +961,12 @@ export default function StudentDashboard() {
                 </div>
             )}
         </AnimatePresence>
+
+        <MarketingModal 
+            isOpen={isMarketingModalOpen} 
+            onClose={() => setIsMarketingModalOpen(false)} 
+            message={marketingMessage} 
+        />
       </div>
     </WavyBackground>
   );

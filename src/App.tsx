@@ -26,6 +26,7 @@ import AdminAnalytics from './pages/AdminAnalytics';
 import ManageStudents from './pages/ManageStudents';
 import ForgotPassword from './pages/ForgotPassword';
 import UpdatePassword from './pages/UpdatePassword';
+import ManageMarketing from './pages/ManageMarketing';
 
 
 export default function App() {
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="/manage-plans" element={<ManagePlans />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/marketing" element={<ManageMarketing />} />
         <Route path="/manage-teachers" element={<ManageTeachers />} />
         <Route path="/class-management/:id" element={<ClassManagement />} />
         <Route path="/book-class" element={<ClassSelection />} />

@@ -230,7 +230,7 @@ export default function Profile() {
              </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar">
              {transactions.length > 0 ? transactions.map(t => (
                 <div key={t.id} className="bg-white p-4 rounded-2xl shadow-sm border border-primary-container/10 flex justify-between items-center group">
                    <div className="flex items-center gap-4">

@@ -16,6 +16,7 @@ export default function AdminDashboard() {
     { title: 'Caixa (Resgate)', icon: 'qr_code_scanner', path: '/admin/scan-pontos', color: 'bg-secondary' },
     { title: 'Gestão de Professores', icon: 'badge', path: '/manage-teachers', color: 'bg-primary' },
     { title: 'Gestão de Planos', icon: 'payments', path: '/manage-plans', color: 'bg-secondary' },
+    { title: 'Gestão de Marketing', icon: 'campaign', path: '/admin/marketing', color: 'bg-primary' },
   ];
 
   async function handleLogout() {
