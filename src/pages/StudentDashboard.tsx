@@ -86,7 +86,7 @@ export default function StudentDashboard() {
         setDayUseBookings(dayUseData || []);
 
         // --- LÓGICA DE RENOVAÇÃO INDIVIDUAL E ACÚMULO ---
-        let currentBalance = profileData.remaining_checkins || 0;
+        let currentBalance = Math.max(0, profileData.remaining_checkins || 0);
         let lastActivation = profileData.plan_activated_at ? new Date(profileData.plan_activated_at) : new Date(profileData.created_at);
         const billingCycle = profileData.plan?.billing_cycle || 'mensal';
         const classesToAdd = profileData.plan?.classes_per_week || 0;
@@ -376,7 +376,8 @@ export default function StudentDashboard() {
       if (diffHours > 48) { alert('Vagas abrem 48h antes!'); return; }
       if (diffMs < 0) { alert('Aula já começou!'); return; }
 
-      if (weeklyBookingsCount <= 0) {
+      const limit = profile.plan?.classes_per_week || 0;
+      if (limit < 99 && weeklyBookingsCount <= 0) {
         setIsQuotaModalOpen(true);
         return;
       }
@@ -520,14 +521,17 @@ export default function StudentDashboard() {
 
       if (bookingError) throw bookingError;
 
-      // Devolver crédito ao saldo (Rollover)
-      const newBalance = weeklyBookingsCount + 1;
-      await supabase
-        .from('profiles')
-        .update({ remaining_checkins: newBalance })
-        .eq('id', profile.id);
-      
-      setWeeklyBookingsCount(newBalance);
+      // Devolver crédito ao saldo (Rollover - Apenas se não for ILIMITADO)
+      const isUnlimited = (profile.plan?.classes_per_week || 0) >= 99;
+      if (!isUnlimited) {
+        const newBalance = Math.max(0, weeklyBookingsCount + 1);
+        await supabase
+          .from('profiles')
+          .update({ remaining_checkins: newBalance })
+          .eq('id', profile.id);
+        
+        setWeeklyBookingsCount(newBalance);
+      }
 
       // 2. Se a aula foi paga com um plano, verificar se precisamos devolver
       if (booking.plan_id) {
@@ -569,6 +573,16 @@ export default function StudentDashboard() {
       });
 
       // Notificar Professor
+      if (booking.classes?.teacher?.email) {
+        await notifyAdmin('teacher_booking_cancelled', {
+          teacher_email: booking.classes.teacher.email,
+          teacher_name: booking.classes.teacher.full_name,
+          student_name: profile.full_name,
+          class_name: booking.classes.name,
+          date: new Date(booking.classes.start_time).toLocaleDateString('pt-BR'),
+          time: new Date(booking.classes.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+        });
+      }
       // 4. Promoção Automática da Lista de Espera Inteligente
       const { data: nextInLine } = await supabase
         .from('waitlist')
@@ -653,10 +667,10 @@ export default function StudentDashboard() {
             <div>
               <h2 className="font-headline font-extrabold text-4xl tracking-tight leading-tight">Olá, {firstName}!</h2>
               <p className="text-white/70 font-medium mt-1 uppercase text-[10px] tracking-widest leading-none">
-                  {profile?.plan ? `${profile.plan.name} • ${weeklyBookingsCount}/${profile.plan.classes_per_week} no ciclo` : 'Sem plano ativo'}
+                  {profile?.plan ? `${profile.plan.name} • ${profile.plan.classes_per_week >= 99 ? '∞' : weeklyBookingsCount + '/' + profile.plan.classes_per_week + ' no ciclo'}` : 'Sem plano ativo'}
               </p>
             </div>
-            {profile?.plan && (
+            {profile?.plan && profile.plan.classes_per_week < 99 && (
                 <div className="bg-white p-3 rounded-2xl shadow-lg border border-primary-container/20 min-w-[120px] text-primary">
                     <div className="text-[10px] font-black uppercase tracking-tighter">Vagas Restantes</div>
                     <div className="text-xl font-headline font-black leading-none">

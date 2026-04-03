@@ -267,7 +267,7 @@ export default function ClassSelection() {
         <section className="space-y-1">
             <div className="flex items-center gap-2 text-secondary font-bold text-[10px] uppercase tracking-[0.2em]">
                 <span className="material-symbols-outlined text-sm">wb_sunny</span>
-                {profile?.plan ? `${weeklyBookingsCount}/${profile.plan.classes_per_week} aulas no ${profile.plan.billing_cycle === 'mensal' ? 'mês' : 'semana'}` : 'Vagas Disponíveis'}
+                {profile?.plan ? (profile.plan.classes_per_week >= 99 ? 'Aulas Ilimitadas ∞' : `${weeklyBookingsCount}/${profile.plan.classes_per_week} aulas no ${profile.plan.billing_cycle === 'mensal' ? 'mês' : 'semana'}`) : 'Vagas Disponíveis'}
             </div>
             <h2 className="font-headline text-4xl font-black tracking-tighter text-on-surface">Agende seu <span className="text-secondary">Treino</span></h2>
         </section>

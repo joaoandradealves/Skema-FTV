@@ -26,6 +26,9 @@ export default function ManageApprovals() {
       const { data, error } = await supabase
         .from('profiles')
         .select(`
+          id,
+          full_name,
+          email,
           pending_plan_id,
           pending_plan:pending_plan_id(name, classes_per_week, type, billing_cycle),
           remaining_checkins
@@ -67,10 +70,10 @@ export default function ManageApprovals() {
             if (planData.type === 'recorrente') {
               updates.plan_id = planId;
               updates.plan_activated_at = new Date().toISOString();
-              updates.remaining_checkins = (app.remaining_checkins || 0) + planData.classes_per_week;
+              updates.remaining_checkins = Math.max(0, (app.remaining_checkins || 0) + planData.classes_per_week);
             } else {
               // Se for avulso, apenas incrementamos o saldo (Skema Day)
-              updates.remaining_checkins = (app.remaining_checkins || 0) + 1;
+              updates.remaining_checkins = Math.max(0, (app.remaining_checkins || 0) + 1);
             }
           }
 

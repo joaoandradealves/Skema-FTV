@@ -85,6 +85,30 @@ export default function DayUse() {
             <p className="text-on-surface-variant text-sm font-medium max-w-xs mx-auto">Escolha uma das ofertas propostas pelo clube para curtir o dia.</p>
           </section>
 
+          {/* New Informative Section */}
+          <section className="bg-secondary/5 border-2 border-secondary/10 rounded-[32px] p-6 text-left space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="flex items-center gap-3 text-secondary">
+              <span className="material-symbols-outlined font-black">info</span>
+              <h3 className="font-headline font-black text-sm uppercase tracking-widest">Como funciona o Day Use?</h3>
+            </div>
+            <p className="text-xs text-on-surface-variant font-medium leading-relaxed">
+              Para fazer parte de um Day Use no Skema, você pagará um valor único e terá acesso à quadra para jogar com os participantes que também fazem parte desse Day Use.
+            </p>
+            <ul className="space-y-2">
+              {[
+                'Acontece o rodízio entre os jogadores na quadra',
+                'Você paga um único valor e terá acesso à quadra durante o horário estimado',
+                'Não existem reservas individuais para quadra com a sua turma, nem horário específico para grupos',
+                'Todos os atletas podem jogar em conjunto e também em categorias mistas'
+              ].map((item, i) => (
+                <li key={i} className="flex gap-2 items-start text-[11px] font-bold text-on-surface/70">
+                  <span className="material-symbols-outlined text-[14px] text-secondary mt-0.5">check_circle</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </section>
+
           {/* Offers List */}
           <section className="space-y-4">
             {loading ? (

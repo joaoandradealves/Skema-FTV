@@ -133,7 +133,7 @@ export default function ManagePlans() {
   const avulsos = plans.filter(p => p.type === 'avulso');
 
   const PlanCard = ({ plan }: { plan: Plan }) => (
-    <div key={plan.id} className="group relative bg-white p-6 rounded-3xl shadow-[0px_4px_20px_rgba(0,0,0,0.04)] border border-outline-variant/10 transition-all hover:shadow-md">
+    <div className="group relative bg-white p-6 rounded-3xl shadow-[0px_4px_20px_rgba(0,0,0,0.04)] border border-outline-variant/10 transition-all hover:shadow-md">
       {editingId === plan.id ? (
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -165,7 +165,7 @@ export default function ManagePlans() {
                   disabled={plan.classes_per_week >= 99}
                   onChange={e => setPlans(prev => prev.map(p => p.id === plan.id ? { ...p, classes_per_week: Number(e.target.value) } : p))}
                   type="number"
-                  placeholder="Ilimitado"
+                  placeholder="∞"
                   className="w-full h-12 px-4 rounded-xl bg-surface-container border-none focus:ring-2 focus:ring-primary/30 transition-all text-on-surface font-semibold disabled:opacity-50"
                 />
                 <button 
@@ -205,7 +205,7 @@ export default function ManagePlans() {
             </div>
             <h3 className="font-headline font-bold text-xl text-on-surface">{plan.name}</h3>
             <p className="text-on-surface-variant text-sm mt-1">
-                {plan.description || (plan.classes_per_week >= 99 ? 'Check-in Livre / Ilimitado' : `${plan.classes_per_week} aulas por ${plan.billing_cycle === 'mensal' ? 'mês' : 'semana'}`)}
+                {plan.description || (plan.classes_per_week >= 99 ? 'Check-in Livre ∞' : `${plan.classes_per_week} aulas por ${plan.billing_cycle === 'mensal' ? 'mês' : 'semana'}`)}
             </p>
             <p className="mt-4 text-2xl font-black text-on-surface flex items-baseline gap-1">
                 R$ {plan.price}
@@ -331,7 +331,7 @@ export default function ManagePlans() {
                             <div className="flex flex-col">
                                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-1">Regra de Check-in</span>
                                 <span className="text-lg font-black text-on-surface leading-tight">
-                                    {newPlan.classes_per_week >= 99 ? 'LIVRE / ILIMITADO' : `${newPlan.classes_per_week || 0} Aulas por ${newPlan.billing_cycle === 'mensal' ? 'Mês' : 'Semana'}`}
+                                    {newPlan.classes_per_week >= 99 ? 'LIVRE ∞' : `${newPlan.classes_per_week || 0} Aulas por ${newPlan.billing_cycle === 'mensal' ? 'Mês' : 'Semana'}`}
                                 </span>
                             </div>
                             <div className="flex gap-4">
