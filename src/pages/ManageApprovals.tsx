@@ -26,11 +26,9 @@ export default function ManageApprovals() {
       const { data, error } = await supabase
         .from('profiles')
         .select(`
-          id, 
-          full_name, 
-          email, 
           pending_plan_id,
-          pending_plan:pending_plan_id(name)
+          pending_plan:pending_plan_id(name, classes_per_week, type, billing_cycle),
+          remaining_checkins
         `)
         .eq('plan_status', 'pendente');
 
@@ -54,21 +52,35 @@ export default function ManageApprovals() {
 
   async function handleAction(userId: string, planId: string | null, approve: boolean) {
     try {
-      const updates = approve 
-        ? { plan_id: planId, plan_status: 'ativo', pending_plan_id: null }
-        : { plan_status: 'nenhum', pending_plan_id: null };
-
-      const { error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', userId);
-
-      if (error) throw error;
-      
       if (approve) {
-        // Obter os dados do aluno atualizado para a notificação
         const app = approvals.find(a => a.id === userId);
         if (app) {
+          const { data: planData } = await supabase.from('plans').select('*').eq('id', planId).single();
+          
+          let updates: any = { 
+            plan_status: 'ativo', 
+            pending_plan_id: null 
+          };
+
+          if (planData) {
+            // Se for recorrente, trocamos o plano e a data âncora
+            if (planData.type === 'recorrente') {
+              updates.plan_id = planId;
+              updates.plan_activated_at = new Date().toISOString();
+              updates.remaining_checkins = (app.remaining_checkins || 0) + planData.classes_per_week;
+            } else {
+              // Se for avulso, apenas incrementamos o saldo (Skema Day)
+              updates.remaining_checkins = (app.remaining_checkins || 0) + 1;
+            }
+          }
+
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update(updates)
+            .eq('id', userId);
+
+          if (updateError) throw updateError;
+
           const { notifyAdmin } = await import('../lib/notifications');
           await notifyAdmin('plan_approved', {
             email: app.email,
@@ -76,6 +88,12 @@ export default function ManageApprovals() {
             plan_name: app.plan_name
           });
         }
+      } else {
+        // Recusa
+        await supabase
+          .from('profiles')
+          .update({ plan_status: 'nenhum', pending_plan_id: null })
+          .eq('id', userId);
       }
       
       setSuccessMsg(approve ? 'Plano aprovado com sucesso!' : 'Solicitação recusada.');

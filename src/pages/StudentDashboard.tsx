@@ -18,6 +18,8 @@ export default function StudentDashboard() {
   const [nextActivity, setNextActivity] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [weeklyBookingsCount, setWeeklyBookingsCount] = useState(0);
+  const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
+  const [nextRenewalDate, setNextRenewalDate] = useState<Date | null>(null);
   const [dayClasses, setDayClasses] = useState<any[]>([]);
   const [bookingLoading, setBookingLoading] = useState<string | null>(null);
   const [loyaltyPoints, setLoyaltyPoints] = useState<number>(0);
@@ -83,20 +85,43 @@ export default function StudentDashboard() {
           .order('created_at', { ascending: false });
         setDayUseBookings(dayUseData || []);
 
-        const now = new Date();
-        let cycleCount = 0;
-        if (profileData?.plan?.billing_cycle === 'mensal') {
-            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-            cycleCount = bookingsData?.filter((b: any) => new Date(b.classes.start_time) >= startOfMonth && new Date(b.classes.start_time) <= endOfMonth).length || 0;
+        // --- LÓGICA DE RENOVAÇÃO INDIVIDUAL E ACÚMULO ---
+        let currentBalance = profileData.remaining_checkins || 0;
+        let lastActivation = profileData.plan_activated_at ? new Date(profileData.plan_activated_at) : new Date(profileData.created_at);
+        const billingCycle = profileData.plan?.billing_cycle || 'mensal';
+        const classesToAdd = profileData.plan?.classes_per_week || 0;
+        
+        let needsUpdate = false;
+        let nextRenewal = new Date(lastActivation);
+
+        // Calcula a próxima renovação baseada no ciclo
+        if (billingCycle === 'mensal') {
+            nextRenewal.setMonth(nextRenewal.getMonth() + 1);
         } else {
-            const day = now.getDay();
-            const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-            const monday = new Date(now.getFullYear(), now.getMonth(), diff);
-            monday.setHours(0,0,0,0);
-            cycleCount = bookingsData?.filter((b: any) => new Date(b.classes.start_time) >= monday).length || 0;
+            nextRenewal.setDate(nextRenewal.getDate() + 7);
         }
-        setWeeklyBookingsCount(cycleCount);
+
+        // Se já passou da data de renovação, processa o acúmulo
+        while (new Date() >= nextRenewal && classesToAdd > 0) {
+            currentBalance += classesToAdd;
+            lastActivation = new Date(nextRenewal);
+            if (billingCycle === 'mensal') {
+                nextRenewal.setMonth(nextRenewal.getMonth() + 1);
+            } else {
+                nextRenewal.setDate(nextRenewal.getDate() + 7);
+            }
+            needsUpdate = true;
+        }
+
+        if (needsUpdate) {
+            await supabase.from('profiles').update({
+                remaining_checkins: currentBalance,
+                plan_activated_at: lastActivation.toISOString()
+            }).eq('id', user.id);
+        }
+
+        setWeeklyBookingsCount(currentBalance);
+        setNextRenewalDate(nextRenewal);
 
 
         const { data: pointsData } = await supabase.from('loyalty_points').select('balance').eq('user_id', user.id).single();
@@ -351,8 +376,10 @@ export default function StudentDashboard() {
       if (diffHours > 48) { alert('Vagas abrem 48h antes!'); return; }
       if (diffMs < 0) { alert('Aula já começou!'); return; }
 
-      const limit = profile.plan.classes_per_week;
-      if (weeklyBookingsCount >= limit) { alert('Limite de aulas atingido!'); return; }
+      if (weeklyBookingsCount <= 0) {
+        setIsQuotaModalOpen(true);
+        return;
+      }
 
       const bookedCount = (cls.bookings || []).filter((b: any) => b.status === 'agendado').length;
       const capacity = cls.capacity || 8;
@@ -492,6 +519,15 @@ export default function StudentDashboard() {
         .eq('id', booking.id);
 
       if (bookingError) throw bookingError;
+
+      // Devolver crédito ao saldo (Rollover)
+      const newBalance = weeklyBookingsCount + 1;
+      await supabase
+        .from('profiles')
+        .update({ remaining_checkins: newBalance })
+        .eq('id', profile.id);
+      
+      setWeeklyBookingsCount(newBalance);
 
       // 2. Se a aula foi paga com um plano, verificar se precisamos devolver
       if (booking.plan_id) {
@@ -1035,7 +1071,52 @@ export default function StudentDashboard() {
 
         <StudentNavbar activePage="home" />
 
-        {/* Modal: Roster View (Quem vai treinar) */}
+        {/* Modal: Saldo Esgotado / Upsell */}
+        <AnimatePresence>
+            {isQuotaModalOpen && (
+                <div className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center p-4">
+                    <motion.div 
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        onClick={() => setIsQuotaModalOpen(false)}
+                        className="absolute inset-0 bg-black/60 backdrop-blur-md"
+                    />
+                    <motion.div 
+                        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+                        className="relative bg-white w-full max-w-sm rounded-[40px] p-8 shadow-2xl space-y-6 text-center"
+                    >
+                        <div className="w-20 h-20 bg-error/10 rounded-full flex items-center justify-center mx-auto">
+                            <span className="material-symbols-outlined text-4xl text-error">info</span>
+                        </div>
+                        <div className="space-y-2">
+                            <h3 className="font-headline font-black text-2xl text-on-surface uppercase italic">SALDO ESGOTADO!</h3>
+                            <p className="text-sm font-medium text-on-surface-variant">Você já utilizou todos os seus check-ins contratados.</p>
+                        </div>
+                        
+                        <div className="py-4 px-6 bg-surface-container rounded-3xl">
+                            <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Próxima Renovação</p>
+                            <p className="font-headline font-black text-lg text-on-surface">
+                                {nextRenewalDate?.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}
+                            </p>
+                        </div>
+
+                        <div className="space-y-3">
+                            <button 
+                                onClick={() => navigate('/plans')}
+                                className="w-full py-5 bg-secondary text-white rounded-3xl font-headline font-black text-xs uppercase tracking-widest shadow-xl shadow-secondary/20 active:scale-95 transition-all"
+                            >
+                                COMPRAR AULA AVULSA
+                            </button>
+                            <button 
+                                onClick={() => setIsQuotaModalOpen(false)}
+                                className="w-full py-4 text-on-surface-variant font-black text-[10px] uppercase tracking-widest opacity-40 hover:opacity-100 transition-all"
+                            >
+                                FECHAR
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
         <AnimatePresence>
             {roster && (
                 <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
