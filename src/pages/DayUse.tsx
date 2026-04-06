@@ -5,6 +5,7 @@ import WavyBackground from '../components/WavyBackground';
 import TopAppBar from '../components/TopAppBar';
 import StudentNavbar from '../components/StudentNavbar';
 import { notifyAdmin } from '../lib/notifications';
+import CPFModal from '../components/CPFModal';
 
 export default function DayUse() {
   const navigate = useNavigate();
@@ -12,10 +13,25 @@ export default function DayUse() {
   const [selectedOffer, setSelectedOffer] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [userCPF, setUserCPF] = useState<string | null>(null);
+  const [showCPFModal, setShowCPFModal] = useState(false);
 
   useEffect(() => {
     fetchOffers();
+    fetchUserProfile();
   }, []);
+
+  async function fetchUserProfile() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+          const { data } = await supabase
+            .from('profiles')
+            .select('cpf')
+            .eq('id', user.id)
+            .single();
+          if (data?.cpf) setUserCPF(data.cpf);
+      }
+  }
 
   async function fetchOffers() {
     try {
@@ -38,6 +54,16 @@ export default function DayUse() {
 
   async function handleRequest() {
     if (!selectedOffer) return;
+    
+    if (!userCPF) {
+        setShowCPFModal(true);
+        return;
+    }
+
+    startCheckout();
+  }
+
+  async function startCheckout() {
     try {
       setSubmitting(true);
       const { data: { user } } = await supabase.auth.getUser();
@@ -45,14 +71,29 @@ export default function DayUse() {
 
       const offer = offers.find(o => o.id === selectedOffer);
       
-      const { error } = await supabase.from('day_use_bookings').insert({
-        student_id: user.id,
-        offer_id: selectedOffer,
-        price: offer.price,
-        status: 'pendente'
+      // 1. Criar a reserva no banco (status pendente)
+      const { data: booking, error: bookingError } = await supabase
+        .from('day_use_bookings')
+        .insert({
+          student_id: user.id,
+          offer_id: selectedOffer,
+          price: offer.price,
+          status: 'pendente'
+        })
+        .select()
+        .single();
+
+      if (bookingError) throw bookingError;
+
+      // 2. Chamar a Edge Function de Checkout
+      const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('mercadopago-checkout', {
+        body: { 
+            booking_id: booking.id, 
+            service_type: 'day_use' 
+        }
       });
 
-      if (error) throw error;
+      if (checkoutError) throw checkoutError;
 
       // Notify Admin
       notifyAdmin('day_use', {
@@ -61,11 +102,14 @@ export default function DayUse() {
         price: offer.price
       });
 
-      alert('Solicitação de Day Use enviada! Aguarde a aprovação do Admin.');
-      navigate('/student');
+      // 3. Redirecionar para o Mercado Pago
+      if (checkoutData?.checkout_url) {
+          window.location.href = checkoutData.checkout_url;
+      } else {
+          throw new Error('Erro ao gerar link de pagamento');
+      }
     } catch (error: any) {
       alert(error.message);
-    } finally {
       setSubmitting(false);
     }
   }
@@ -164,6 +208,16 @@ export default function DayUse() {
           <p className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-[0.1em]">A liberação ocorre após a aprovação do administrador do clube.</p>
 
         </main>
+
+        <CPFModal 
+            isOpen={showCPFModal} 
+            onClose={() => setShowCPFModal(false)} 
+            onSuccess={(cpf) => {
+                setUserCPF(cpf);
+                setShowCPFModal(false);
+                startCheckout();
+            }}
+        />
 
         <StudentNavbar activePage="home" />
 

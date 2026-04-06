@@ -6,6 +6,7 @@ import TopAppBar from '../components/TopAppBar';
 import StudentNavbar from '../components/StudentNavbar';
 import { motion, AnimatePresence } from 'framer-motion';
 import { notifyAdmin } from '../lib/notifications';
+import CPFModal from '../components/CPFModal';
 
 interface Profile {
     id: string;
@@ -27,6 +28,9 @@ export default function CourtBooking() {
   const [searchResults, setSearchResults] = useState<Profile[]>([]);
   const [searching, setSearching] = useState(false);
   const [pointsPerHour, setPointsPerHour] = useState(15);
+  const [userCPF, setUserCPF] = useState<string | null>(null);
+  const [showCPFModal, setShowCPFModal] = useState(false);
+  const [courtPrice, setCourtPrice] = useState(60);
 
   // Horários de funcionamento: 08:00 às 22:00
   const hours = Array.from({ length: 15 }, (_, i) => i + 8);
@@ -34,6 +38,8 @@ export default function CourtBooking() {
   useEffect(() => {
     fetchOccupiedSlots();
     fetchPointsConfig();
+    fetchUserProfile();
+    fetchCourtPrice();
   }, [selectedDate]);
 
   useEffect(() => {
@@ -44,6 +50,18 @@ export default function CourtBooking() {
     }
   }, [searchTerm]);
 
+  async function fetchUserProfile() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+          const { data } = await supabase
+            .from('profiles')
+            .select('cpf')
+            .eq('id', user.id)
+            .single();
+          if (data?.cpf) setUserCPF(data.cpf);
+      }
+  }
+
   async function fetchPointsConfig() {
       const { data } = await supabase
         .from('loyalty_config')
@@ -51,6 +69,15 @@ export default function CourtBooking() {
         .eq('id', 'court_rental')
         .single();
       if (data) setPointsPerHour(data.value);
+  }
+
+  async function fetchCourtPrice() {
+      const { data } = await supabase
+        .from('court_configs')
+        .select('court_price_per_hour')
+        .eq('id', 'default')
+        .single();
+      if (data) setCourtPrice(Number(data.court_price_per_hour));
   }
 
   async function searchProfiles() {
@@ -146,6 +173,15 @@ export default function CourtBooking() {
         if (!confirm('Os horários selecionados não são sequenciais. Deseja continuar?')) return;
     }
 
+    if (!userCPF) {
+        setShowCPFModal(true);
+        return;
+    }
+
+    startCheckout();
+  }
+
+  async function startCheckout() {
     try {
       setSubmitting(true);
       const { data: { user } } = await supabase.auth.getUser();
@@ -155,32 +191,50 @@ export default function CourtBooking() {
       const startHour = Math.min(...selectedSlots);
       const endHour = Math.max(...selectedSlots) + 1;
 
-      const { error } = await supabase.from('court_rentals').insert({
-        student_id: user.id,
-        court_name: 'QUADRA 1',
-        rental_date: dateString,
-        start_time: `${String(startHour).padStart(2, '0')}:00:00`,
-        end_time: `${String(endHour).padStart(2, '0')}:00:00`,
-        total_price: selectedSlots.length * 60,
-        status: 'pendente',
-        participants: participants.map(p => p.id)
+      // 1. Criar a reserva no banco (status pendente)
+      const { data: rental, error: rentalError } = await supabase
+        .from('court_rentals')
+        .insert({
+          student_id: user.id,
+          court_name: 'QUADRA 1',
+           rental_date: dateString,
+          start_time: `${String(startHour).padStart(2, '0')}:00:00`,
+          end_time: `${String(endHour).padStart(2, '0')}:00:00`,
+          total_price: selectedSlots.length * courtPrice,
+          status: 'pendente',
+          participants: participants.map(p => p.id)
+        })
+        .select()
+        .single();
+
+      if (rentalError) throw rentalError;
+
+      // 2. Chamar a Edge Function de Checkout
+      const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('mercadopago-checkout', {
+        body: { 
+            booking_id: rental.id, 
+            service_type: 'court_rental' 
+        }
       });
 
-      if (error) throw error;
+      if (checkoutError) throw checkoutError;
 
       // Notify Admin
       notifyAdmin('court_rental', {
         full_name: user.user_metadata?.full_name || 'Aluno',
         rental_date: new Date(dateString).toLocaleDateString('pt-BR'),
         time_label: `${String(startHour).padStart(2, '0')}:00 - ${String(endHour).padStart(2, '0')}:00`,
-        price: selectedSlots.length * 60
+        price: selectedSlots.length * courtPrice
       });
 
-      alert('Solicitação de aluguel enviada! Aguarde a aprovação do Admin.');
-      navigate('/student');
+      // 3. Redirecionar para o Mercado Pago
+      if (checkoutData?.checkout_url) {
+          window.location.href = checkoutData.checkout_url;
+      } else {
+          throw new Error('Erro ao gerar link de pagamento');
+      }
     } catch (error: any) {
       alert(error.message);
-    } finally {
       setSubmitting(false);
     }
   }
@@ -198,7 +252,7 @@ export default function CourtBooking() {
               RESIDENCIAL SKEMA
             </div>
             <h2 className="font-headline text-4xl font-black tracking-tighter text-on-surface">Agende sua <span className="text-secondary">Quadra</span></h2>
-            <p className="text-on-surface-variant text-sm font-medium">Valor: R$ 60,00 por hora</p>
+            <p className="text-on-surface-variant text-sm font-medium">Valor: R$ {courtPrice},00 por hora</p>
           </section>
 
           {/* Date Picker */}
@@ -333,7 +387,7 @@ export default function CourtBooking() {
                 <div className="flex justify-between items-center">
                     <div className="space-y-0.5">
                        <p className="text-[10px] font-black text-on-surface-variant/60 uppercase tracking-widest">Total do Aluguel ({selectedSlots.length}h)</p>
-                       <p className="text-3xl font-black text-secondary leading-none">R$ {selectedSlots.length * 60},00</p>
+                       <p className="text-3xl font-black text-secondary leading-none">R$ {selectedSlots.length * courtPrice},00</p>
                     </div>
                 </div>
 
@@ -362,6 +416,16 @@ export default function CourtBooking() {
           )}
 
         </main>
+
+        <CPFModal 
+            isOpen={showCPFModal} 
+            onClose={() => setShowCPFModal(false)} 
+            onSuccess={(cpf) => {
+                setUserCPF(cpf);
+                setShowCPFModal(false);
+                startCheckout();
+            }}
+        />
 
         <StudentNavbar activePage="home" />
 

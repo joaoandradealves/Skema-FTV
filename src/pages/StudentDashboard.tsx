@@ -45,6 +45,9 @@ export default function StudentDashboard() {
   const [marketingMessage, setMarketingMessage] = useState<any>(null);
   const [isMarketingModalOpen, setIsMarketingModalOpen] = useState(false);
 
+  // Payment Feedback State
+  const [paymentStatus, setPaymentStatus] = useState<'success' | 'failure' | 'pending' | null>(null);
+
   useEffect(() => {
     async function fetchData() {
       try {
@@ -206,6 +209,20 @@ export default function StudentDashboard() {
          }
      }
      checkMarketing();
+  }, []);
+
+  // Handle Mercado Pago Return
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get('payment');
+    if (status === 'success') setPaymentStatus('success');
+    else if (status === 'failure') setPaymentStatus('failure');
+    else if (status === 'pending') setPaymentStatus('pending');
+    
+    if (status) {
+        // Clear params to avoid repeating message on refresh
+        navigate('/student', { replace: true });
+    }
   }, []);
 
   useEffect(() => {
@@ -1197,6 +1214,47 @@ export default function StudentDashboard() {
             onClose={() => setIsMarketingModalOpen(false)} 
             message={marketingMessage} 
         />
+
+        {/* Payment Status Overlay */}
+        <AnimatePresence>
+            {paymentStatus && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
+                    <motion.div 
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0 }}
+                        className="bg-white rounded-[40px] p-10 shadow-2xl max-w-xs w-full text-center space-y-6"
+                    >
+                        <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto ${
+                            paymentStatus === 'success' ? 'bg-primary/10 text-primary' : 
+                            paymentStatus === 'failure' ? 'bg-error/10 text-error' : 'bg-orange-100 text-orange-600'
+                        }`}>
+                            <span className="material-symbols-outlined text-4xl">
+                                {paymentStatus === 'success' ? 'check_circle' : 
+                                 paymentStatus === 'failure' ? 'error' : 'schedule'}
+                            </span>
+                        </div>
+                        <div className="space-y-2">
+                            <h3 className="font-headline font-black text-2xl uppercase italic leading-none">
+                                {paymentStatus === 'success' ? 'PAGAMENTO APROVADO!' : 
+                                 paymentStatus === 'failure' ? 'PAGAMENTO FALHOU' : 'PAGAMENTO EM ANÁLISE'}
+                            </h3>
+                            <p className="text-xs font-bold text-on-surface-variant uppercase tracking-tighter">
+                                {paymentStatus === 'success' ? 'Sua reserva foi confirmada automaticamente. Divirta-se!' : 
+                                 paymentStatus === 'failure' ? 'Houve um problema com seu pagamento. Tente novamente ou fale conosco.' : 
+                                 'Aguardando a confirmação do Mercado Pago. Você será avisado em breve.'}
+                            </p>
+                        </div>
+                        <button 
+                            onClick={() => setPaymentStatus(null)}
+                            className="w-full h-16 bg-on-surface text-surface rounded-3xl font-headline font-black text-xs uppercase tracking-widest active:scale-95 transition-all"
+                        >
+                            FECHAR
+                        </button>
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
       </div>
 
       <PWAInstallPrompt />

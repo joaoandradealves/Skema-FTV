@@ -12,10 +12,12 @@ export default function Profile() {
   const [profile, setProfile] = useState<{
     full_name: string;
     phone: string;
+    cpf: string;
     avatar_url: string | null;
   }>({
     full_name: '',
     phone: '',
+    cpf: '',
     avatar_url: null,
   });
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -35,7 +37,7 @@ export default function Profile() {
 
       const { data, error, status } = await supabase
         .from('profiles')
-        .select(`full_name, role, avatar_url`)
+        .select(`full_name, role, avatar_url, cpf`)
         .eq('id', user.id)
         .single();
 
@@ -45,6 +47,7 @@ export default function Profile() {
         setProfile({
           full_name: data.full_name || '',
           phone: user.user_metadata?.phone || '',
+          cpf: data.cpf || '',
           avatar_url: data.avatar_url,
         });
       }
@@ -78,6 +81,7 @@ export default function Profile() {
       const updates = {
         id: user.id,
         full_name: profile.full_name,
+        cpf: profile.cpf.replace(/\D/g, ''),
         avatar_url: profile.avatar_url,
         updated_at: new Date(),
       };
@@ -179,6 +183,26 @@ export default function Profile() {
               onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
               required
             />
+          </div>
+
+          <div className="space-y-2">
+            <label className="font-label text-xs font-bold uppercase tracking-widest text-on-surface-variant ml-1">CPF (apenas números)</label>
+            <input
+              className="w-full h-14 px-5 rounded-xl bg-surface-container-highest border-none focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+              type="text"
+              placeholder="000.000.000-00"
+              value={profile.cpf}
+              onChange={(e) => {
+                const value = e.target.value
+                    .replace(/\D/g, '')
+                    .replace(/(\d{3})(\d)/, '$1.$2')
+                    .replace(/(\d{3})(\d)/, '$1.$2')
+                    .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+                    .replace(/(-\d{2})\d+?$/, '$1');
+                setProfile({ ...profile, cpf: value });
+              }}
+            />
+            <p className="text-[10px] text-on-surface-variant ml-1 italic">Necessário para pagamentos via PIX e Cartão no Mercado Pago.</p>
           </div>
 
           <div className="space-y-2">

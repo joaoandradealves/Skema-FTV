@@ -39,6 +39,8 @@ export default function ManageLeisure() {
   const [studentSearch, setStudentSearch] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
+  const [courtPrice, setCourtPrice] = useState<number>(60);
+  const [updatingPrice, setUpdatingPrice] = useState(false);
 
   // Form State for New Offer
   const [newOffer, setNewOffer] = useState({
@@ -75,10 +77,33 @@ export default function ManageLeisure() {
         if (error) throw error;
         setOffers(data || []);
       }
+
+      // Buscar preço da quadra (Independente da aba)
+      const { data: priceData } = await supabase.from('court_configs').select('court_price_per_hour').eq('id', 'default').single();
+      if (priceData) setCourtPrice(Number(priceData.court_price_per_hour));
+
     } catch (error: any) {
       alert(error.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleUpdateCourtPrice() {
+    try {
+      setUpdatingPrice(true);
+      const { error } = await supabase
+        .from('court_configs')
+        .update({ court_price_per_hour: courtPrice })
+        .eq('id', 'default');
+      
+      if (error) throw error;
+      setSuccessMsg('Preço da quadra atualizado!');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (error: any) {
+      alert(error.message);
+    } finally {
+      setUpdatingPrice(false);
     }
   }
 
@@ -295,6 +320,35 @@ export default function ManageLeisure() {
 
           {/* Content Area */}
           <div className="space-y-4">
+            {activeTab === 'rentals' && (
+                <div className="bg-white p-6 rounded-[32px] border-2 border-primary-container/20 shadow-sm space-y-4 mb-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="font-headline font-black text-lg text-on-surface uppercase tracking-tight">Preço da Quadra</h3>
+                            <p className="text-[10px] font-bold text-on-surface-variant uppercase opacity-60 italic">Valor cobrado por hora de reserva</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-on-surface-variant opacity-40">R$</span>
+                                <input 
+                                    type="number" 
+                                    value={courtPrice}
+                                    onChange={(e) => setCourtPrice(Number(e.target.value))}
+                                    className="w-24 h-12 pl-8 border-none bg-surface-container rounded-xl font-headline font-black text-secondary text-lg text-center"
+                                />
+                            </div>
+                            <button 
+                                onClick={handleUpdateCourtPrice}
+                                disabled={updatingPrice}
+                                className="h-12 px-6 bg-secondary text-white rounded-xl font-headline font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-all disabled:opacity-50"
+                            >
+                                {updatingPrice ? '...' : 'SALVAR'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {loading ? (
                 <div className="py-20 text-center text-on-surface-variant/30 font-black uppercase text-xs tracking-[0.2em] animate-pulse">Carregando informações...</div>
             ) : (

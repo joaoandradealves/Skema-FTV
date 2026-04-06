@@ -9,12 +9,30 @@ export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
+  const [cpf, setCpf] = useState('');
   const [role, setRole] = useState<'student' | 'teacher'>('student');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const formatCPF = (value: string) => {
+    return value
+      .replace(/\D/g, '')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+      .replace(/(-\d{2})\d+?$/, '$1');
+  };
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validação básica de CPF
+    const cleanCPF = cpf.replace(/\D/g, '');
+    if (cleanCPF.length !== 11) {
+      setError('CPF inválido. Deve conter 11 dígitos.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -26,6 +44,7 @@ export default function Register() {
           full_name: fullName,
           phone: phone,
           role: role,
+          cpf: cleanCPF
         },
       },
     });
@@ -42,7 +61,8 @@ export default function Register() {
         full_name: fullName,
         email: email,
         phone: phone,
-        role: role
+        role: role,
+        cpf: cleanCPF
       });
 
       alert('Cadastro realizado com sucesso! Verifique seu e-mail (se habilitado) ou faça login.');
@@ -126,6 +146,18 @@ export default function Register() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="font-label text-xs font-bold uppercase tracking-widest text-on-surface-variant ml-1">CPF (apenas números)</label>
+            <input
+              className="w-full h-12 px-5 rounded-xl bg-surface-container-highest border-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-on-surface-variant/40 text-on-surface font-medium"
+              placeholder="000.000.000-00"
+              type="text"
+              value={cpf}
+              onChange={(e) => setCpf(formatCPF(e.target.value))}
               required
             />
           </div>
