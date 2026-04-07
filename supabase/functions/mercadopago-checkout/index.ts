@@ -16,7 +16,10 @@ serve(async (req) => {
     
     // Auth check
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) return new Response(JSON.stringify({ error: 'Não autorizado' }), { status: 401, headers: corsHeaders })
+    if (!authHeader) {
+        console.error('ERRO: Cabeçalho Authorization ausente');
+        return new Response(JSON.stringify({ error: 'Não autorizado' }), { status: 401, headers: corsHeaders })
+    }
     
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -25,7 +28,12 @@ serve(async (req) => {
     )
 
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
-    if (userError || !user) return new Response(JSON.stringify({ error: 'Sessão expirada' }), { status: 401, headers: corsHeaders })
+    if (userError || !user) {
+        console.error('ERRO: Falha ao obter usuário do Supabase:', userError?.message || 'Usuário nulo');
+        return new Response(JSON.stringify({ error: 'Sessão expirada' }), { status: 401, headers: corsHeaders })
+    }
+    
+    console.log('Sucesso: Usuário autenticado:', user.email);
 
     // Build Admin client
     const supabaseAdmin = createClient(

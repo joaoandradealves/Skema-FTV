@@ -92,12 +92,17 @@ export default function ManageLeisure() {
   async function handleUpdateCourtPrice() {
     try {
       setUpdatingPrice(true);
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('court_configs')
         .update({ court_price_per_hour: courtPrice })
-        .eq('id', 'default');
+        .eq('id', 'default')
+        .select();
       
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error('Falha ao atualizar: Nenhuma linha afetada. Verifique se você é um administrador.');
+      }
+
       setSuccessMsg('Preço da quadra atualizado!');
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch (error: any) {
