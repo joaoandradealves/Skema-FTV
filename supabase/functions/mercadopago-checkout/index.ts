@@ -70,6 +70,9 @@ serve(async (req) => {
           currency_id: 'BRL'
         }
       ],
+      payer: {
+        email: user.email
+      },
       back_urls: {
         success: `${req.headers.get('origin')}/student?payment=success`,
         failure: `${req.headers.get('origin')}/student?payment=failure`,

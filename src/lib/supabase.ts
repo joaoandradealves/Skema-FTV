@@ -16,7 +16,7 @@ const isStandalone = typeof window !== 'undefined' && (
 
 export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
   auth: {
-    persistSession: isStandalone, // Persiste o login permanentemente apenas se for PWA instalado
+    persistSession: true, // Sempre persiste o login para evitar perda de sessão no navegador
     autoRefreshToken: true,
   }
 });

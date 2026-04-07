@@ -298,6 +298,27 @@ export default function StudentDashboard() {
       setIsRentalSearching(false);
   }
 
+  async function reinitiateCheckout(bookingId: string, serviceType: 'court_rental' | 'day_use') {
+    try {
+        setBookingLoading(bookingId);
+        const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('mercadopago-checkout', {
+            body: { booking_id: bookingId, service_type: serviceType }
+        });
+
+        if (checkoutError) throw checkoutError;
+
+        if (checkoutData?.checkout_url) {
+            window.location.href = checkoutData.checkout_url;
+        } else {
+            throw new Error('Erro ao gerar link de pagamento');
+        }
+    } catch (error: any) {
+        alert('Erro ao iniciar pagamento: ' + error.message);
+    } finally {
+        setBookingLoading(null);
+    }
+  }
+
   useEffect(() => {
     if (rentalSearchTerm.length >= 2) searchRentalProfiles();
     else setRentalSearchResults([]);
@@ -339,7 +360,9 @@ export default function StudentDashboard() {
           const { error } = await supabase.from('court_rentals').update({ status: 'cancelado' }).eq('id', selectedRental.id);
           if (error) throw error;
           alert('Aluguel cancelado!');
-          window.location.reload();
+          setCourtRentals(prev => prev.filter(r => r.id !== selectedRental.id));
+          setIsRentalModalOpen(false);
+          setSelectedRental(null);
       } catch (error: any) {
           console.error(error);
           alert('Erro ao cancelar aluguel: ' + error.message);
@@ -371,8 +394,9 @@ export default function StudentDashboard() {
           if (error) throw error;
           
           alert('reserva cancelada com sucesso!');
+          setDayUseBookings(prev => prev.filter(d => d.id !== selectedDayUse.id));
+          setIsDayUseModalOpen(false);
           setSelectedDayUse(null);
-          window.location.reload();
       } catch (error: any) {
           alert('Erro ao cancelar: ' + error.message);
       }
@@ -1046,8 +1070,24 @@ export default function StudentDashboard() {
                             )}
 
                             <div className="pt-8 flex flex-col gap-4">
-                                <button onClick={handleCancelRental} className="w-full h-16 bg-error/10 text-error rounded-3xl font-headline font-black uppercase tracking-widest text-xs">Cancelar Aluguel</button>
-                                <button onClick={() => setIsRentalModalOpen(false)} className="w-full h-12 text-on-surface-variant/40 font-black uppercase tracking-widest text-[10px]">Fechar</button>
+                                {selectedRental.status !== 'aprovado' && (
+                                    <button 
+                                        onClick={() => reinitiateCheckout(selectedRental.id, 'court_rental')}
+                                        disabled={bookingLoading === selectedRental.id}
+                                        className="w-full h-16 bg-primary text-white rounded-3xl font-headline font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        {bookingLoading === selectedRental.id ? (
+                                            <span className="material-symbols-outlined animate-spin text-sm">sync</span>
+                                        ) : (
+                                            <>
+                                                <span className="material-symbols-outlined text-sm">payments</span>
+                                                Pagar Agora (R$ {selectedRental.total_price})
+                                            </>
+                                        )}
+                                    </button>
+                                )}
+                                <button onClick={handleCancelRental} className="w-full h-14 bg-error/10 text-error rounded-3xl font-headline font-black uppercase tracking-widest text-[10px]">Cancelar Aluguel</button>
+                                <button onClick={() => setIsRentalModalOpen(false)} className="w-full h-12 text-on-surface-variant/40 font-black uppercase tracking-widest text-[9px]">Voltar</button>
                             </div>
                         </div>
                     </motion.div>
@@ -1091,8 +1131,24 @@ export default function StudentDashboard() {
                             </div>
 
                             <div className="pt-8 flex flex-col gap-4">
-                                <button onClick={handleCancelDayUse} className="w-full h-16 bg-error/10 text-error rounded-3xl font-headline font-black uppercase tracking-widest text-xs">Cancelar Minha Reserva</button>
-                                <button onClick={() => setIsDayUseModalOpen(false)} className="w-full h-12 text-on-surface-variant/40 font-black uppercase tracking-widest text-[10px]">Fechar</button>
+                                {selectedDayUse.status !== 'aprovado' && (
+                                    <button 
+                                        onClick={() => reinitiateCheckout(selectedDayUse.id, 'day_use')}
+                                        disabled={bookingLoading === selectedDayUse.id}
+                                        className="w-full h-16 bg-primary text-white rounded-3xl font-headline font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        {bookingLoading === selectedDayUse.id ? (
+                                            <span className="material-symbols-outlined animate-spin text-sm">sync</span>
+                                        ) : (
+                                            <>
+                                                <span className="material-symbols-outlined text-sm">payments</span>
+                                                Pagar Agora (R$ {selectedDayUse.price})
+                                            </>
+                                        )}
+                                    </button>
+                                )}
+                                <button onClick={handleCancelDayUse} className="w-full h-14 bg-error/10 text-error rounded-3xl font-headline font-black uppercase tracking-widest text-[10px]">Cancelar Minha Reserva</button>
+                                <button onClick={() => setIsDayUseModalOpen(false)} className="w-full h-12 text-on-surface-variant/40 font-black uppercase tracking-widest text-[9px]">Voltar</button>
                             </div>
                         </div>
                     </motion.div>
