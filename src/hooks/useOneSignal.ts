@@ -103,10 +103,26 @@ export function useOneSignal(userId: string | undefined) {
       );
 
       // Iniciar a solicitação de permissão
-      await Promise.race([
-          OneSignal.Notifications.requestPermission(),
-          timeoutPromise
-      ]);
+      try {
+        console.log('[DEBUG] Tentando OneSignal Request...');
+        const requestPromise = OneSignal.Notifications.requestPermission();
+        
+        // Corrida entre a requisição e o timeout interno
+        await Promise.race([
+            requestPromise,
+            timeoutPromise
+        ]);
+        
+      } catch (e: any) {
+        console.log('[DEBUG] OneSignal ou Timeout falhou, tentando fallback nativo...');
+        if ((window as any).Notification && (window as any).Notification.permission === 'default') {
+            try {
+                await (window as any).Notification.requestPermission();
+            } catch (nativeErr) {
+                console.error('[DEBUG] Falha total no prompt nativo:', nativeErr);
+            }
+        }
+      }
 
       await updateSubscriptionStatus(true);
     } catch (err: any) {
