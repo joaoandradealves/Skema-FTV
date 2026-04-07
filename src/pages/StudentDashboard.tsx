@@ -24,7 +24,7 @@ export default function StudentDashboard() {
   const [dayClasses, setDayClasses] = useState<any[]>([]);
   const [bookingLoading, setBookingLoading] = useState<string | null>(null);
   const [loyaltyPoints, setLoyaltyPoints] = useState<number>(0);
-  const { isSubscribed, promptSubscription } = useOneSignal(profile?.id);
+  const { isSubscribed, promptSubscription, isIOS, isStandalone } = useOneSignal(profile?.id);
 
   // Roster State
   const [roster, setRoster] = useState<{ className: string, students: any[] } | null>(null);
@@ -724,12 +724,24 @@ export default function StudentDashboard() {
                           <span className="material-symbols-outlined text-3xl text-primary font-black">notifications_active</span>
                       </div>
                       <div>
-                          <h4 className="font-headline font-black text-on-surface text-lg leading-tight">Fique por dentro!</h4>
-                          <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mt-1">Ative os alertas de vagas e aulas</p>
+                          <h4 className="font-headline font-black text-on-surface text-lg leading-tight">
+                            {isIOS && !isStandalone ? 'Instale o App' : 'Fique por dentro!'}
+                          </h4>
+                          <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mt-1 leading-tight">
+                            {isIOS && !isStandalone 
+                              ? 'Adicione à tela de início para receber alertas' 
+                              : 'Ative os alertas de vagas e aulas'}
+                          </p>
                       </div>
                   </div>
                   <button 
-                      onClick={promptSubscription}
+                      onClick={async () => {
+                        const btn = document.getElementById('btn-push-activate');
+                        if (btn) btn.innerText = 'CARREGANDO...';
+                        await promptSubscription();
+                        if (btn) btn.innerText = 'ATIVAR';
+                      }}
+                      id="btn-push-activate"
                       className="px-6 py-3 bg-primary text-white text-[10px] font-black rounded-2xl whitespace-nowrap active:scale-95 transition-all shadow-lg shadow-primary/20 relative z-10 uppercase tracking-widest"
                   >
                       ATIVAR
