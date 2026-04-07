@@ -717,62 +717,6 @@ export default function StudentDashboard() {
         <TopAppBar title="SKEMA BEACH CLUB" avatarSrc={profile?.avatar_url} avatarAlt={profile?.full_name || "Perfil"} />
 
         <main className="mt-20 px-6 max-w-2xl mx-auto space-y-8">
-          {/* Push Notification Banner */}
-          {!isSubscribed && (
-              <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="p-6 bg-white rounded-[32px] shadow-xl border border-primary/20 flex items-center justify-between gap-4 relative overflow-hidden group"
-              >
-                  <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 transform rotate-12 transition-all">
-                      <span className="material-symbols-outlined text-[80px] text-primary">notifications_active</span>
-                  </div>
-                  <div className="flex items-center gap-4 relative z-10">
-                      <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-                          <span className="material-symbols-outlined text-3xl text-primary font-black">notifications_active</span>
-                      </div>
-                      <div>
-                          <h4 className="font-headline font-black text-on-surface text-lg leading-tight">
-                            {isIOS && !isStandalone ? 'Instale o App' : 'Fique por dentro!'}
-                          </h4>
-                          <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mt-1 leading-tight">
-                            {isIOS && !isStandalone 
-                              ? 'Adicione à tela de início para receber alertas' 
-                              : 'Ative os alertas de vagas e aulas'}
-                          </p>
-                      </div>
-                  </div>
-                  <button 
-                      onClick={async () => {
-                        // GESTO SINCRONO: Pedir permissão no topo
-                        promptSubscription();
-                        
-                        setIsLoadingPush(true);
-                        // Aguardar 5 segundos para dar tempo do sistema reagir 
-                        // ou o banner sumir via hook
-                        setTimeout(() => setIsLoadingPush(false), 5000);
-                      }}
-                      disabled={isLoadingPush}
-                      className="px-6 py-3 bg-primary text-white text-[10px] font-black rounded-2xl whitespace-nowrap active:scale-95 transition-all shadow-lg shadow-primary/20 relative z-10 uppercase tracking-widest disabled:opacity-70"
-                  >
-                      {isLoadingPush ? 'CARREGANDO...' : 'ATIVAR'}
-                  </button>
-
-                  {/* PAINEL DE DIAGNÓSTICO TÉCNICO (TEMPORÁRIO) */}
-                  <div className="absolute left-0 right-0 -bottom-24 p-3 bg-black/90 rounded-2xl border border-white/10 font-mono text-[9px] text-cyan-400 shadow-2xl z-50">
-                    <div className="flex items-center justify-between mb-1 border-b border-white/10 pb-1">
-                      <span className="font-bold uppercase tracking-wider text-white/50">RAIO-X TÉCNICO</span>
-                      <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
-                    </div>
-                    <div className="space-y-0.5">
-                      <p><span className="text-white/40">STATUS:</span> {debugStatus}</p>
-                      <p><span className="text-white/40">PUSH ID:</span> <span className="break-all">{playerId || 'NULO'}</span></p>
-                      <p><span className="text-white/40">AMBIENTE:</span> {isStandalone ? 'PWA (CORRETO)' : 'NAVEGADOR (RESTRITO)'}</p>
-                    </div>
-                  </div>
-              </motion.div>
-          )}
-
           {/* 1. Welcome Header & Vagas */}
           <section className="flex justify-between items-start text-white">
             <div>

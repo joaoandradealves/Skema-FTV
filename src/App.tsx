@@ -62,10 +62,6 @@ export default function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/update-password" element={<UpdatePassword />} />
       </Routes>
-      <div style={{ position: 'fixed', bottom: '20px', left: '20px', right: '20px', padding: '15px', background: 'rgba(0,0,0,0.95)', borderRadius: '24px', border: '1px solid #00ffff', color: '#00ffff', zIndex: 99999 }}>
-        <b>RAIO-X GLOBAL:</b> {window.location.hostname}
-      </div>
-
     </Router>
   );
 }
