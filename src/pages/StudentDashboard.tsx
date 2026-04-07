@@ -737,11 +737,13 @@ export default function StudentDashboard() {
                   </div>
                   <button 
                       onClick={async () => {
+                        // GESTO SINCRONO: Pedir permissão no topo
+                        promptSubscription();
+                        
                         setIsLoadingPush(true);
-                        await promptSubscription();
-                        // O banner sumirá sozinho quando isSubscribed mudar, 
-                        // mas caso não mude (ex: erro ou cancelamento), voltamos o estado.
-                        setIsLoadingPush(false);
+                        // Aguardar 5 segundos para dar tempo do sistema reagir 
+                        // ou o banner sumir via hook
+                        setTimeout(() => setIsLoadingPush(false), 5000);
                       }}
                       disabled={isLoadingPush}
                       className="px-6 py-3 bg-primary text-white text-[10px] font-black rounded-2xl whitespace-nowrap active:scale-95 transition-all shadow-lg shadow-primary/20 relative z-10 uppercase tracking-widest disabled:opacity-70"

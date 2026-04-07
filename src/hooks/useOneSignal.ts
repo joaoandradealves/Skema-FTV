@@ -81,59 +81,32 @@ export function useOneSignal(userId: string | undefined) {
     const OneSignal = (window as any).OneSignal;
 
     if (isIOS && !isStandalone) {
-      alert('No iPhone, as notificações só funcionam no modo "Tela de Início".\n\nAbra o app pelo ícone que você adicionou à sua tela principal e tente novamente!');
+      alert('As notificações só funcionam no modo "Tela de Início".\n\nAbra o app pelo ícone que você adicionou à sua tela principal!');
       return;
     }
 
     if (!OneSignal || !OneSignal.Notifications) {
-      alert('Aguardando inicialização das notificações... Tente novamente em 2 segundos.');
+      alert('Sistema de notificações ainda carregando...');
       return;
     }
 
+    // GESTO DO USUÁRIO: Disparar IMEDIATAMENTE
     try {
-      const nativePermission = (window as any).Notification?.permission;
-      if (nativePermission === 'denied') {
-          alert('As notificações foram BLOQUEADAS no seu iPhone.\n\nPara ativar:\n1. Vá em Ajustes > Safari (ou o app Skema)\n2. Procure por Notificações\n3. Ative as permissões.');
-          return;
+      console.log('[DEBUG] Disparando requestPermission...');
+      
+      // Tentativa 1: OneSignal Oficial
+      const promise = OneSignal.Notifications.requestPermission();
+      
+      // Tentativa 2: Fallback Nativo Síncrono (caso o OneSignal demore a reagir)
+      if ((window as any).Notification && (window as any).Notification.permission === 'default') {
+          (window as any).Notification.requestPermission().catch(() => {});
       }
 
-      // Criar um timeout para não travar o carregamento para sempre
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('TIMEOUT_EXCEEDED')), 8000)
-      );
-
-      // Iniciar a solicitação de permissão
-      try {
-        console.log('[DEBUG] Tentando OneSignal Request...');
-        const requestPromise = OneSignal.Notifications.requestPermission();
-        
-        // Corrida entre a requisição e o timeout interno
-        await Promise.race([
-            requestPromise,
-            timeoutPromise
-        ]);
-        
-      } catch (e: any) {
-        console.log('[DEBUG] OneSignal ou Timeout falhou, tentando fallback nativo...');
-        if ((window as any).Notification && (window as any).Notification.permission === 'default') {
-            try {
-                await (window as any).Notification.requestPermission();
-            } catch (nativeErr) {
-                console.error('[DEBUG] Falha total no prompt nativo:', nativeErr);
-            }
-        }
-      }
-
+      await promise;
       await updateSubscriptionStatus(true);
     } catch (err: any) {
-      if (err.message === 'TIMEOUT_EXCEEDED') {
-        const status = await updateSubscriptionStatus(true);
-        if (!status) {
-           alert('O Safari não respondeu. Tente desinstalar o ícone da tela de início e adicionar novamente para resetar as permissões.');
-        }
-      } else {
-        alert('Ocorreu um erro ao ativar: ' + err.message);
-      }
+      console.error('[PROMPT ERROR]', err);
+      // Silencioso aqui para não atrapalhar o fluxo principal caso o usuário cancele
       await updateSubscriptionStatus();
     }
   };
