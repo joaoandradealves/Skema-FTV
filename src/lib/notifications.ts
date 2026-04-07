@@ -1,6 +1,6 @@
 const API_URL = '/api/notify-admin';
 
-export type NotificationType = 'registration' | 'plan_request' | 'day_use' | 'court_rental' | 'plan_approved' | 'booking_confirmed' | 'teacher_new_student' | 'booking_cancelled' | 'teacher_booking_cancelled' | 'waitlist_promoted';
+export type NotificationType = 'registration' | 'plan_request' | 'day_use' | 'court_rental' | 'plan_approved' | 'booking_confirmed' | 'teacher_new_student' | 'booking_cancelled' | 'teacher_booking_cancelled' | 'waitlist_promoted' | 'rental_approved' | 'day_use_approved';
 
 export async function notifyAdmin(type: NotificationType, data: any) {
   try {

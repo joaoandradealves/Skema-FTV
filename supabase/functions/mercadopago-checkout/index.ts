@@ -60,6 +60,13 @@ serve(async (req) => {
     const MP_ACCESS_TOKEN = Deno.env.get('MERCADOPAGO_ACCESS_TOKEN')
     if (!MP_ACCESS_TOKEN) throw new Error("Configuração do Mercado Pago ausente (Token)")
 
+    // Fetch profile data for better payer identification
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('full_name, cpf')
+      .eq('id', user.id)
+      .single()
+
     const preference = {
       items: [
         {
@@ -71,7 +78,13 @@ serve(async (req) => {
         }
       ],
       payer: {
-        email: user.email
+        email: user.email,
+        name: profile?.full_name?.split(' ')[0] || '',
+        surname: profile?.full_name?.split(' ').slice(1).join(' ') || '',
+        identification: profile?.cpf ? {
+          type: 'CPF',
+          number: profile.cpf.replace(/\D/g, '')
+        } : undefined
       },
       back_urls: {
         success: `${req.headers.get('origin')}/student?payment=success`,

@@ -21,7 +21,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { type, data } = req.body;
   const resendApiKey = process.env.RESEND_API_KEY;
+  const oneSignalAppId = process.env.ONESIGNAL_APP_ID || '51486d1b-db76-4996-b5bd-1c88bcb14835';
+  const oneSignalApiKey = process.env.ONESIGNAL_REST_API_KEY;
   const adminEmail = 'joao.andrade.alves12@gmail.com';
+
+  // Helper to send OneSignal Push
+  async function sendPush(playerId: string, title: string, message: string) {
+    if (!oneSignalApiKey) return console.warn('[PUSH] Skip: API Key missing');
+    try {
+      await fetch('https://onesignal.com/api/v1/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${oneSignalApiKey}`
+        },
+        body: JSON.stringify({
+          app_id: oneSignalAppId,
+          include_player_ids: [playerId],
+          headings: { en: title, pt: title },
+          contents: { en: message, pt: message },
+          url: 'https://skema-ftv.vercel.app/student-dashboard'
+        })
+      });
+      console.log('[PUSH] Sent to:', playerId);
+    } catch (e) {
+      console.error('[PUSH ERROR]', e);
+    }
+  }
 
   if (!resendApiKey) {
     console.error('RESEND_API_KEY is missing');
@@ -112,6 +138,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           ${footer}
         </div>
       `;
+      if (data.onesignal_id) {
+        await sendPush(data.onesignal_id, '✅ Plano Aprovado!', `Seu plano ${data.plan_name} já está ativo. Bons treinos!`);
+      }
       break;
 
     case 'booking_confirmed':
@@ -134,6 +163,53 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           ${footer}
         </div>
       `;
+      if (data.onesignal_id) {
+        await sendPush(data.onesignal_id, '🏐 Check-in Confirmado!', `${data.class_name} às ${data.time}. Te vemos na areia!`);
+      }
+      break;
+
+    case 'rental_approved':
+      subject = `[SKEMA] 🎾 Aluguel de Quadra Aprovado!`;
+      html = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border-radius: 20px; border: 1px solid #eee; overflow: hidden;">
+          ${header}
+          <div style="padding: 40px 30px; text-align: center;">
+            <h2 style="color: #006971; font-size: 24px;">Tudo certo, ${data.full_name}!</h2>
+            <p style="font-size: 16px; color: #444;">Seu aluguel da quadra <strong>${data.court_name}</strong> para o dia <strong>${data.date}</strong> foi aprovado.</p>
+            <div style="margin: 30px 0; background: #fcfcfc; border: 2px dashed #eee; padding: 20px; border-radius: 16px;">
+              <p style="margin: 0; color: #888; text-transform: uppercase; font-weight: bold; font-size: 12px;">Horário</p>
+              <p style="margin: 5px 0; color: #006971; font-size: 20px; font-weight: bold;">${data.start_time} - ${data.end_time}</p>
+            </div>
+            <p style="color: #666; font-size: 14px;">Aproveite o jogo!</p>
+          </div>
+          ${footer}
+        </div>
+      `;
+      if (data.onesignal_id) {
+        await sendPush(data.onesignal_id, '🎾 Quadra Aprovada!', `Sua reserva para ${data.date} às ${data.start_time} foi confirmada!`);
+      }
+      break;
+
+    case 'day_use_approved':
+      subject = `[SKEMA] ☀️ Seu Day Use foi Aprovado!`;
+      html = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border-radius: 20px; border: 1px solid #eee; overflow: hidden;">
+          ${header}
+          <div style="padding: 40px 30px; text-align: center;">
+            <h2 style="color: #006971; font-size: 24px;">Prepare o protetor solar, ${data.full_name}!</h2>
+            <p style="font-size: 16px; color: #444;">Seu Day Use para o dia <strong>${data.date}</strong> foi aprovado. Te esperamos!</p>
+            <div style="margin: 30px 0; background: #fcfcfc; border: 2px dashed #eee; padding: 20px; border-radius: 16px;">
+               <p style="margin: 0; color: #888; text-transform: uppercase; font-weight: bold; font-size: 12px;">Status</p>
+               <p style="margin: 5px 0; color: #EF7651; font-size: 20px; font-weight: bold;">ACESSO LIBERADO</p>
+            </div>
+            <p style="color: #666; font-size: 14px;">Basta apresentar o seu nome na recepção.</p>
+          </div>
+          ${footer}
+        </div>
+      `;
+      if (data.onesignal_id) {
+        await sendPush(data.onesignal_id, '☀️ Day Use Liberado!', `Seu acesso para ${data.date} foi aprovado. Bem-vindo!`);
+      }
       break;
 
     case 'day_use':
@@ -256,6 +332,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           ${footer}
         </div>
       `;
+      if (data.onesignal_id) {
+        await sendPush(data.onesignal_id, '🎊 Vaga Confirmada!', `Você saiu da lista de espera para ${data.class_name}!`);
+      }
       break;
 
     default:

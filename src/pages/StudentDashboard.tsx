@@ -7,6 +7,7 @@ import WavyBackground from '../components/WavyBackground';
 import { motion, AnimatePresence } from 'framer-motion';
 import MarketingModal from '../components/MarketingModal';
 import PWAInstallPrompt from '../components/PWAInstallPrompt';
+import { useOneSignal } from '../hooks/useOneSignal';
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ export default function StudentDashboard() {
   const [dayClasses, setDayClasses] = useState<any[]>([]);
   const [bookingLoading, setBookingLoading] = useState<string | null>(null);
   const [loyaltyPoints, setLoyaltyPoints] = useState<number>(0);
+  const { isSubscribed, promptSubscription } = useOneSignal(profile?.id);
 
   // Roster State
   const [roster, setRoster] = useState<{ className: string, students: any[] } | null>(null);
@@ -503,7 +505,8 @@ export default function StudentDashboard() {
         class_name: cls.name,
         date: new Date(cls.start_time).toLocaleDateString('pt-BR'),
         time: new Date(cls.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-        court: cls.court
+        court: cls.court,
+        onesignal_id: profile.onesignal_id
       });
 
       // Notificar Professor (se o e-mail estiver disponível)
@@ -633,7 +636,8 @@ export default function StudentDashboard() {
           student_id, 
           profiles:student_id (
             full_name, 
-            email
+            email,
+            onesignal_id
           )
         `)
         .eq('class_id', booking.class_id)
@@ -665,7 +669,8 @@ export default function StudentDashboard() {
             class_name: booking.classes.name,
             date: new Date(booking.classes.start_time).toLocaleDateString('pt-BR'),
             time: new Date(booking.classes.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-            court: booking.classes.court
+            court: booking.classes.court,
+            onesignal_id: (nextInLine.profiles as any).onesignal_id
           });
         }
       }
@@ -704,6 +709,34 @@ export default function StudentDashboard() {
         <TopAppBar title="SKEMA BEACH CLUB" avatarSrc={profile?.avatar_url} avatarAlt={profile?.full_name || "Perfil"} />
 
         <main className="mt-20 px-6 max-w-2xl mx-auto space-y-8">
+          {/* Push Notification Banner */}
+          {!isSubscribed && (
+              <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-6 bg-white rounded-[32px] shadow-xl border border-primary/20 flex items-center justify-between gap-4 relative overflow-hidden group"
+              >
+                  <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 transform rotate-12 transition-all">
+                      <span className="material-symbols-outlined text-[80px] text-primary">notifications_active</span>
+                  </div>
+                  <div className="flex items-center gap-4 relative z-10">
+                      <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-3xl text-primary font-black">notifications_active</span>
+                      </div>
+                      <div>
+                          <h4 className="font-headline font-black text-on-surface text-lg leading-tight">Fique por dentro!</h4>
+                          <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mt-1">Ative os alertas de vagas e aulas</p>
+                      </div>
+                  </div>
+                  <button 
+                      onClick={promptSubscription}
+                      className="px-6 py-3 bg-primary text-white text-[10px] font-black rounded-2xl whitespace-nowrap active:scale-95 transition-all shadow-lg shadow-primary/20 relative z-10 uppercase tracking-widest"
+                  >
+                      ATIVAR
+                  </button>
+              </motion.div>
+          )}
+
           {/* 1. Welcome Header & Vagas */}
           <section className="flex justify-between items-start text-white">
             <div>

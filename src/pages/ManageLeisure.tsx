@@ -12,7 +12,7 @@ interface CourtRental {
   end_time: string;
   total_price: number;
   status: string;
-  student: { full_name: string; email: string };
+  student: { full_name: string; email: string; onesignal_id?: string };
 }
 
 interface DayUseRequest {
@@ -21,7 +21,7 @@ interface DayUseRequest {
   booking_date: string;
   price: number;
   status: string;
-  student: { full_name: string; email: string };
+  student: { full_name: string; email: string; onesignal_id?: string };
 }
 
 export default function ManageLeisure() {
@@ -63,7 +63,7 @@ export default function ManageLeisure() {
       if (activeTab === 'rentals') {
         const { data, error } = await supabase
           .from('court_rentals')
-          .select('*, student:student_id(full_name, email)')
+          .select('*, student:student_id(full_name, email, onesignal_id)')
           .neq('status', 'cancelado')
           .order('created_at', { ascending: false });
         if (error) throw error;
@@ -71,7 +71,7 @@ export default function ManageLeisure() {
       } else if (activeTab === 'day-use') {
         const { data, error } = await supabase
           .from('day_use_bookings')
-          .select('*, student:student_id(full_name, email), offer:offer_id(*)')
+          .select('*, student:student_id(full_name, email, onesignal_id), offer:offer_id(*)')
           .neq('status', 'cancelado')
           .order('created_at', { ascending: false });
         if (error) throw error;
@@ -191,7 +191,24 @@ export default function ManageLeisure() {
         .update({ status: approve ? 'aprovado' : 'cancelado' })
         .eq('id', id);
       if (error) throw error;
-      setSuccessMsg(approve ? 'Aluguel aprovado e e-mail enviado!' : 'Aluguel recusado.');
+
+      if (approve) {
+        const rental = rentals.find(r => r.id === id);
+        if (rental) {
+            const { notifyAdmin } = await import('../lib/notifications');
+            await notifyAdmin('rental_approved', {
+                email: rental.student.email,
+                full_name: rental.student.full_name,
+                court_name: rental.court_name,
+                date: new Date(rental.rental_date + 'T00:00:00').toLocaleDateString('pt-BR'),
+                start_time: rental.start_time.slice(0,5),
+                end_time: rental.end_time.slice(0,5),
+                onesignal_id: rental.student.onesignal_id
+            });
+        }
+      }
+
+      setSuccessMsg(approve ? 'Aluguel aprovado e notificações enviadas!' : 'Aluguel recusado.');
       fetchData();
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch (error: any) {
@@ -206,7 +223,21 @@ export default function ManageLeisure() {
         .update({ status: approve ? 'aprovado' : 'cancelado' })
         .eq('id', id);
       if (error) throw error;
-      setSuccessMsg(approve ? 'Day Use aprovado e e-mail enviado!' : 'Day Use recusado.');
+
+      if (approve) {
+        const booking = dayUseRequests.find(d => d.id === id);
+        if (booking) {
+            const { notifyAdmin } = await import('../lib/notifications');
+            await notifyAdmin('day_use_approved', {
+                email: booking.student.email,
+                full_name: booking.student.full_name,
+                date: new Date(booking.booking_date + 'T00:00:00').toLocaleDateString('pt-BR'),
+                onesignal_id: booking.student.onesignal_id
+            });
+        }
+      }
+
+      setSuccessMsg(approve ? 'Day Use aprovado e notificações enviadas!' : 'Day Use recusado.');
       fetchData();
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch (error: any) {

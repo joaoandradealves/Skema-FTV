@@ -9,6 +9,7 @@ interface PendingApproval {
   email: string;
   pending_plan_id: string;
   plan_name?: string;
+  onesignal_id?: string;
 }
 
 export default function ManageApprovals() {
@@ -31,7 +32,8 @@ export default function ManageApprovals() {
           email,
           pending_plan_id,
           pending_plan:pending_plan_id(name, classes_per_week, type, billing_cycle),
-          remaining_checkins
+          remaining_checkins,
+          onesignal_id
         `)
         .eq('plan_status', 'pendente');
 
@@ -88,7 +90,8 @@ export default function ManageApprovals() {
           await notifyAdmin('plan_approved', {
             email: app.email,
             full_name: app.full_name,
-            plan_name: app.plan_name
+            plan_name: app.plan_name,
+            onesignal_id: (app as any).onesignal_id
           });
         }
       } else {
