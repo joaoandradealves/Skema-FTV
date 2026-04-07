@@ -15,7 +15,18 @@ export function useOneSignal(userId: string | undefined) {
     if (OneSignal && OneSignal.Notifications && OneSignal.User) {
       try {
         const hasPermission = OneSignal.Notifications.permission;
-        const isPushEnabled = await OneSignal.User.PushSubscription.optedIn;
+        let isPushEnabled = await OneSignal.User.PushSubscription.optedIn;
+        
+        // FORÇAR OPT-IN: Se tem permissão mas não está inscrito, tenta forçar
+        if (hasPermission === true && isPushEnabled === false) {
+            try {
+                await OneSignal.User.PushSubscription.optIn();
+                isPushEnabled = await OneSignal.User.PushSubscription.optedIn;
+            } catch (optErr) {
+                console.error('[DEBUG] Falha ao forçar opt-in:', optErr);
+            }
+        }
+
         const pushId = await OneSignal.User.PushSubscription.id;
         
         if (showDebug) {
