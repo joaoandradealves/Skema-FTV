@@ -25,10 +25,12 @@ interface DayUseRequest {
 }
 
 export default function ManageLeisure() {
-  const [activeTab, setActiveTab] = useState<'rentals' | 'day-use' | 'create-offer'>('rentals');
+  const [activeTab, setActiveTab] = useState<'rentals' | 'day-use' | 'create-offer' | 'payments'>('rentals');
   const [rentals, setRentals] = useState<CourtRental[]>([]);
   const [dayUseRequests, setDayUseRequests] = useState<DayUseRequest[]>([]);
   const [offers, setOffers] = useState<any[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
+  const [totalRevenue, setTotalRevenue] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
@@ -62,16 +64,30 @@ export default function ManageLeisure() {
         const { data, error } = await supabase
           .from('court_rentals')
           .select('*, student:student_id(full_name, email)')
-          .eq('status', 'pendente');
+          .neq('status', 'cancelado')
+          .order('created_at', { ascending: false });
         if (error) throw error;
         setRentals(data || []);
       } else if (activeTab === 'day-use') {
         const { data, error } = await supabase
           .from('day_use_bookings')
           .select('*, student:student_id(full_name, email), offer:offer_id(*)')
-          .eq('status', 'pendente');
+          .neq('status', 'cancelado')
+          .order('created_at', { ascending: false });
         if (error) throw error;
         setDayUseRequests(data || []);
+      } else if (activeTab === 'payments') {
+        const { data, error } = await supabase
+          .from('payments')
+          .select('*, profiles:student_id(full_name, email)')
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        setPayments(data || []);
+        
+        const total = (data || [])
+          .filter(p => p.status === 'paid')
+          .reduce((sum, p) => sum + Number(p.amount), 0);
+        setTotalRevenue(total);
       } else {
         const { data, error } = await supabase.from('day_use_offers').select('*').order('offer_date', { ascending: false });
         if (error) throw error;
@@ -321,6 +337,14 @@ export default function ManageLeisure() {
              >
                 Ofertas
              </button>
+             <button 
+                onClick={() => setActiveTab('payments')}
+                className={`flex-1 min-w-[100px] py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-widest transition-all
+                  ${activeTab === 'payments' ? 'bg-secondary text-white shadow-md' : 'text-on-surface-variant/70 hover:text-on-surface'}
+                `}
+             >
+                Financeiro
+             </button>
           </div>
 
           {/* Content Area */}
@@ -357,158 +381,182 @@ export default function ManageLeisure() {
             {loading ? (
                 <div className="py-20 text-center text-on-surface-variant/30 font-black uppercase text-xs tracking-[0.2em] animate-pulse">Carregando informações...</div>
             ) : (
-              activeTab === 'rentals' ? (
-                rentals.length > 0 ? (
-                  rentals.map(r => (
-                    <div key={r.id} className="bg-white p-6 rounded-[32px] border-2 border-primary-container/10 shadow-sm space-y-4">
-                        <div className="flex justify-between items-start">
-                           <div>
-                              <p className="text-[10px] font-black text-secondary uppercase tracking-widest mb-1">{r.court_name}</p>
-                              <h4 className="font-headline font-black text-xl text-on-surface leading-tight tracking-tight">{r.student?.full_name || 'Aluno Sem Nome'}</h4>
-                              <p className="text-[10px] font-bold text-on-surface-variant opacity-60 uppercase">{new Date(r.rental_date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}</p>
-                           </div>
-                           <div className="bg-surface-container-highest px-4 py-2 rounded-2xl text-secondary font-black text-lg">R$ {r.total_price}</div>
-                        </div>
-                        
-                        <div className="flex items-center gap-2 p-3 bg-surface-container rounded-2xl text-xs font-bold">
-                            <span className="material-symbols-outlined text-sm text-secondary">schedule</span>
-                            {r.start_time.slice(0,5)} - {r.end_time.slice(0,5)} (Total {Number(r.end_time.split(':')[0]) - Number(r.start_time.split(':')[0])}h)
-                        </div>
+                <>
+                    {activeTab === 'rentals' && (
+                        rentals.length > 0 ? (
+                            rentals.map(r => (
+                                <div key={r.id} className="bg-white p-6 rounded-[32px] border-2 border-primary-container/10 shadow-sm space-y-4">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <p className="text-[10px] font-black text-secondary uppercase tracking-widest mb-1">{r.court_name}</p>
+                                            <h4 className="font-headline font-black text-xl text-on-surface">{r.student?.full_name}</h4>
+                                            <p className="text-[10px] font-bold text-on-surface-variant opacity-60 uppercase">{new Date(r.rental_date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}</p>
+                                        </div>
+                                        <div className="bg-surface-container-highest px-4 py-2 rounded-2xl text-secondary font-black text-lg">R$ {r.total_price}</div>
+                                    </div>
+                                    <div className="flex items-center gap-2 p-3 bg-surface-container rounded-2xl text-xs font-bold font-mono">
+                                        <span className="material-symbols-outlined text-sm text-secondary">schedule</span>
+                                        {r.start_time.slice(0,5)} - {r.end_time.slice(0,5)}
+                                    </div>
+                                    <div className="flex gap-3 pt-2">
+                                        {r.status === 'aprovado' ? (
+                                            <div className="w-full bg-primary/10 text-primary py-4 rounded-2xl font-headline font-black text-xs uppercase tracking-widest text-center border-2 border-primary/20">
+                                                CONFIRMADO (PAGO)
+                                            </div>
+                                        ) : r.status === 'aguardando' ? (
+                                            <div className="w-full space-y-3">
+                                                <div className="w-full bg-amber-50 text-amber-600 py-3 rounded-2xl font-headline font-black text-[10px] uppercase tracking-widest text-center border-2 border-amber-100 flex items-center justify-center gap-2">
+                                                    <span className="material-symbols-outlined text-sm">payments</span>
+                                                    Aguardando Pagamento
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => handleRentalAction(r.id, true)} className="flex-1 bg-surface-container-highest text-on-surface-variant py-3 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-surface-container-high transition-colors">Aprovar Manual</button>
+                                                    <button onClick={() => handleRentalAction(r.id, false)} className="px-4 bg-surface-container-highest text-error py-3 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-error/10 transition-colors">Recusar</button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <button onClick={() => handleRentalAction(r.id, true)} className="flex-1 bg-secondary text-white py-4 rounded-2xl font-headline font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all">Aprovar Aluguel</button>
+                                                <button onClick={() => handleRentalAction(r.id, false)} className="px-6 bg-surface-container-highest text-on-surface-variant rounded-2xl font-bold text-xs uppercase tracking-widest">Recusar</button>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="py-20 text-center opacity-30 font-bold uppercase text-xs tracking-widest">Nenhum aluguel ativo</div>
+                        )
+                    )}
 
-                        <div className="flex gap-3 pt-2">
-                           <button onClick={() => handleRentalAction(r.id, true)} className="flex-1 bg-secondary text-white py-4 rounded-2xl font-headline font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all">Aprovar Aluguel</button>
-                           <button onClick={() => handleRentalAction(r.id, false)} className="px-6 bg-surface-container-highest text-on-surface-variant rounded-2xl font-bold text-xs uppercase tracking-widest">Recusar</button>
-                        </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="py-20 text-center opacity-30 font-bold uppercase text-xs tracking-widest">Nenhum aluguel pendente</div>
-                )
-              ) : activeTab === 'day-use' ? (
-                dayUseRequests.length > 0 ? (
-                  dayUseRequests.map(d => (
-                    <div key={d.id} className="bg-white p-6 rounded-[32px] border-2 border-primary-container/10 shadow-sm space-y-4">
-                        <div className="flex justify-between items-start">
-                           <div>
-                              <p className="text-[10px] font-black text-secondary uppercase tracking-widest mb-1">Acesso ao Clube</p>
-                              <h4 className="font-headline font-black text-xl text-on-surface leading-tight tracking-tight">{d.student?.full_name || 'Aluno Sem Nome'}</h4>
-                              <p className="text-[10px] font-bold text-on-surface-variant opacity-60 uppercase">
-                                 Oferta para {new Date(d.offer?.offer_date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
-                              </p>
-                           </div>
-                           <div className="bg-surface-container-highest px-4 py-2 rounded-2xl text-secondary font-black text-lg">R$ {d.price}</div>
-                        </div>
+                    {activeTab === 'day-use' && (
+                        dayUseRequests.length > 0 ? (
+                            dayUseRequests.map(d => (
+                                <div key={d.id} className="bg-white p-6 rounded-[32px] border-2 border-primary-container/10 shadow-sm space-y-4">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <p className="text-[10px] font-black text-secondary uppercase tracking-widest mb-1">Acesso ao Clube</p>
+                                            <h4 className="font-headline font-black text-xl text-on-surface">{d.student?.full_name}</h4>
+                                            <p className="text-[10px] font-bold text-on-surface-variant opacity-60 uppercase">
+                                                Oferta para {new Date(d.offer?.offer_date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
+                                            </p>
+                                        </div>
+                                        <div className="bg-surface-container-highest px-4 py-2 rounded-2xl text-secondary font-black text-lg">R$ {d.price}</div>
+                                    </div>
+                                    <div className="flex gap-3 pt-2">
+                                        {d.status === 'aprovado' ? (
+                                            <div className="w-full bg-primary/10 text-primary py-4 rounded-2xl font-headline font-black text-xs uppercase tracking-widest text-center border-2 border-primary/20">
+                                                CONFIRMADO
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <button onClick={() => handleDayUseAction(d.id, true)} className="flex-1 bg-secondary text-white py-4 rounded-2xl font-headline font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all">Aprovar Day Use</button>
+                                                <button onClick={() => handleDayUseAction(d.id, false)} className="px-6 bg-surface-container-highest text-on-surface-variant rounded-2xl font-bold text-xs uppercase tracking-widest">Recusar</button>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="py-20 text-center opacity-30 font-bold uppercase text-xs tracking-widest">Nenhum pedido ativo</div>
+                        )
+                    )}
 
-                        <div className="flex gap-3 pt-2">
-                           <button onClick={() => handleDayUseAction(d.id, true)} className="flex-1 bg-secondary text-white py-4 rounded-2xl font-headline font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all">Aprovar Day Use</button>
-                           <button onClick={() => handleDayUseAction(d.id, false)} className="px-6 bg-surface-container-highest text-on-surface-variant rounded-2xl font-bold text-xs uppercase tracking-widest">Recusar</button>
-                        </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="py-20 text-center opacity-30 font-bold uppercase text-xs tracking-widest">Nenhum pedido de Day Use</div>
-                )
-              ) : (
-                <div className="space-y-6">
-                   {/* Form to Create New Offer */}
-                   <section className="bg-white p-6 rounded-[32px] border-2 border-primary-container/20 shadow-sm space-y-4">
-                      <h3 className="font-headline font-black text-lg text-on-surface uppercase tracking-tight">Propor Novo Day Use</h3>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="col-span-2">
-                           <label className="text-[10px] font-black text-on-surface-variant uppercase ml-2">Data</label>
-                           <input 
-                              type="date" 
-                              value={newOffer.offer_date}
-                              onChange={(e) => setNewOffer({...newOffer, offer_date: e.target.value})}
-                              className="w-full bg-surface-container border-none rounded-xl font-bold text-secondary"
-                           />
-                        </div>
-                        <div>
-                           <label className="text-[10px] font-black text-on-surface-variant uppercase ml-2">Início</label>
-                           <input 
-                              type="time" 
-                              value={newOffer.start_time}
-                              onChange={(e) => setNewOffer({...newOffer, start_time: e.target.value})}
-                              className="w-full bg-surface-container border-none rounded-xl font-bold text-secondary"
-                           />
-                        </div>
-                        <div>
-                           <label className="text-[10px] font-black text-on-surface-variant uppercase ml-2">Fim</label>
-                           <input 
-                              type="time" 
-                              value={newOffer.end_time}
-                              onChange={(e) => setNewOffer({...newOffer, end_time: e.target.value})}
-                              className="w-full bg-surface-container border-none rounded-xl font-bold text-secondary"
-                           />
-                        </div>
-                        <div>
-                           <label className="text-[10px] font-black text-on-surface-variant uppercase ml-2">Preço (R$)</label>
-                           <input 
-                              type="number" 
-                              value={newOffer.price}
-                              onChange={(e) => setNewOffer({...newOffer, price: Number(e.target.value)})}
-                              className="w-full bg-surface-container border-none rounded-xl font-bold text-secondary"
-                           />
-                        </div>
-                        <div>
-                           <label className="text-[10px] font-black text-on-surface-variant uppercase ml-2">Vagas</label>
-                           <input 
-                              type="number" 
-                              value={newOffer.max_spots}
-                              onChange={(e) => setNewOffer({...newOffer, max_spots: Number(e.target.value)})}
-                              className="w-full bg-surface-container border-none rounded-xl font-bold text-secondary"
-                           />
-                        </div>
-                      </div>
-                      <button 
-                         disabled={submitting}
-                         onClick={handleCreateOffer}
-                         className="w-full bg-secondary text-white py-4 rounded-2xl font-headline font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all"
-                      >
-                         {submitting ? 'CRIANDO...' : 'CRIAR OFERTA DE DAY USE'}
-                      </button>
-                   </section>
+                    {activeTab === 'create-offer' && (
+                        <div className="space-y-6">
+                            <section className="bg-white p-6 rounded-[32px] border-2 border-primary-container/20 shadow-sm space-y-4">
+                                <h3 className="font-headline font-black text-lg text-on-surface uppercase tracking-tight">Propor Novo Day Use</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="col-span-2">
+                                        <label className="text-[10px] font-black text-on-surface-variant uppercase ml-2">Data</label>
+                                        <input type="date" value={newOffer.offer_date} onChange={(e) => setNewOffer({...newOffer, offer_date: e.target.value})} className="w-full bg-surface-container border-none rounded-xl font-bold text-secondary" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black text-on-surface-variant uppercase ml-2">Início</label>
+                                        <input type="time" value={newOffer.start_time} onChange={(e) => setNewOffer({...newOffer, start_time: e.target.value})} className="w-full bg-surface-container border-none rounded-xl font-bold text-secondary" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black text-on-surface-variant uppercase ml-2">Fim</label>
+                                        <input type="time" value={newOffer.end_time} onChange={(e) => setNewOffer({...newOffer, end_time: e.target.value})} className="w-full bg-surface-container border-none rounded-xl font-bold text-secondary" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black text-on-surface-variant uppercase ml-2">Preço (R$)</label>
+                                        <input type="number" value={newOffer.price} onChange={(e) => setNewOffer({...newOffer, price: Number(e.target.value)})} className="w-full bg-surface-container border-none rounded-xl font-bold text-secondary" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-black text-on-surface-variant uppercase ml-2">Vagas</label>
+                                        <input type="number" value={newOffer.max_spots} onChange={(e) => setNewOffer({...newOffer, max_spots: Number(e.target.value)})} className="w-full bg-surface-container border-none rounded-xl font-bold text-secondary" />
+                                    </div>
+                                </div>
+                                <button disabled={submitting} onClick={handleCreateOffer} className="w-full bg-secondary text-white py-4 rounded-2xl font-headline font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all">
+                                    {submitting ? 'CRIANDO...' : 'CRIAR OFERTA DE DAY USE'}
+                                </button>
+                            </section>
 
-                   {/* List of Offers */}
-                   <section className="space-y-4">
-                      <h3 className="font-headline font-black text-lg text-on-surface uppercase tracking-tight ml-2">Ofertas Ativas</h3>
-                      {offers.length > 0 ? offers.map(off => (
-                        <div key={off.id} className="bg-surface-container-highest p-5 rounded-2xl border border-primary-container/10 flex justify-between items-center group relative overflow-hidden">
-                            <div>
-                               <p className="text-[10px] font-black text-secondary uppercase italic">{new Date(off.offer_date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long' })}</p>
-                               <h5 className="font-headline font-black text-lg text-on-surface">{new Date(off.offer_date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}</h5>
-                               <p className="text-xs font-bold text-on-surface-variant">{off.start_time.slice(0,5)} às {off.end_time.slice(0,5)} • R$ {off.price}</p>
+                            <section className="space-y-4">
+                                <h3 className="font-headline font-black text-lg text-on-surface uppercase tracking-tight ml-2">Ofertas Ativas</h3>
+                                {offers.length > 0 ? offers.map(off => (
+                                    <div key={off.id} className="bg-surface-container-highest p-5 rounded-2xl border border-primary-container/10 flex justify-between items-center">
+                                        <div>
+                                            <p className="text-[10px] font-black text-secondary uppercase italic">{new Date(off.offer_date + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long' })}</p>
+                                            <h5 className="font-headline font-black text-lg text-on-surface">{new Date(off.offer_date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}</h5>
+                                            <p className="text-xs font-bold text-on-surface-variant">{off.start_time.slice(0,5)} às {off.end_time.slice(0,5)} • R$ {off.price}</p>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button onClick={() => { setManagingParticipants(off); fetchParticipants(off.id); }} className="w-8 h-8 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center hover:bg-secondary hover:text-white transition-all"><span className="material-symbols-outlined text-sm font-black">groups</span></button>
+                                            <button onClick={() => { setEditingOffer(off); setIsEditing(true); }} className="w-8 h-8 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center hover:bg-secondary hover:text-white transition-all"><span className="material-symbols-outlined text-sm font-black">edit</span></button>
+                                            <button onClick={() => handleDeleteOffer(off.id)} className="w-8 h-8 rounded-lg bg-error/10 text-error flex items-center justify-center hover:bg-error hover:text-white transition-all"><span className="material-symbols-outlined text-sm font-black">delete</span></button>
+                                        </div>
+                                    </div>
+                                )) : (
+                                    <div className="py-10 text-center opacity-30 italic text-xs font-bold uppercase tracking-widest">Nenhuma oferta criada</div>
+                                )}
+                            </section>
+                        </div>
+                    )}
+
+                    {activeTab === 'payments' && (
+                        <div className="space-y-6">
+                            <div className="bg-white p-8 rounded-[32px] border-2 border-primary-container/20 shadow-sm flex items-center justify-between overflow-hidden relative">
+                                <div className="absolute -right-4 -bottom-4 opacity-10 rotate-12">
+                                    <span className="material-symbols-outlined text-[120px] text-secondary">payments</span>
+                                </div>
+                                <div className="relative z-10">
+                                    <p className="text-[10px] font-black text-secondary uppercase tracking-[0.3em] mb-1">Faturamento Total (Aprovado)</p>
+                                    <h3 className="font-headline font-black text-4xl text-on-surface tracking-tighter">R$ {totalRevenue.toFixed(2)}</h3>
+                                </div>
+                                <div className="text-right relative z-10">
+                                    <div className="bg-secondary/10 text-secondary px-4 py-2 rounded-2xl font-black text-xs uppercase tracking-widest">
+                                        {payments.filter(p => p.status === 'paid').length} Vendas
+                                    </div>
+                                </div>
                             </div>
-                            <div className="flex flex-col items-end gap-2">
-                               <div className="bg-white/50 px-3 py-1 rounded-full text-[10px] font-black text-secondary border border-secondary/10">
-                                  {off.max_spots} VAGAS
-                               </div>
-                               <div className="flex gap-2">
-                                   <button 
-                                       onClick={() => { 
-                                           setManagingParticipants(off); 
-                                           fetchParticipants(off.id); 
-                                       }} 
-                                       className="w-8 h-8 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center hover:bg-secondary hover:text-white transition-all"
-                                       title="Gerenciar Participantes"
-                                   >
-                                       <span className="material-symbols-outlined text-sm font-black">groups</span>
-                                   </button>
-                                   <button onClick={() => { setEditingOffer(off); setIsEditing(true); }} className="w-8 h-8 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center hover:bg-secondary hover:text-white transition-all">
-                                       <span className="material-symbols-outlined text-sm font-black">edit</span>
-                                   </button>
-                                   <button onClick={() => handleDeleteOffer(off.id)} className="w-8 h-8 rounded-lg bg-error/10 text-error flex items-center justify-center hover:bg-error hover:text-white transition-all">
-                                       <span className="material-symbols-outlined text-sm font-black">delete</span>
-                                   </button>
-                               </div>
+
+                            <div className="space-y-4">
+                                <h3 className="font-headline font-black text-lg text-on-surface uppercase tracking-tight ml-2">Histórico de Transações</h3>
+                                {payments.length > 0 ? payments.map(p => (
+                                    <div key={p.id} className="bg-white p-5 rounded-[28px] border border-primary-container/10 shadow-sm flex items-center justify-between transition-all hover:border-secondary/20">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${p.status === 'paid' ? 'bg-primary/10 text-primary' : 'bg-surface-container-highest text-on-surface-variant/40'}`}>
+                                                <span className="material-symbols-outlined font-black">{p.status === 'paid' ? 'check_circle' : 'pending'}</span>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-widest mb-0.5">{p.service_type === 'court_rental' ? 'Aluguel' : 'Day Use'}</p>
+                                                <h5 className="font-headline font-bold text-on-surface uppercase tracking-tight leading-none mb-1">{p.profiles?.full_name || 'Desconhecido'}</h5>
+                                                <p className="text-[9px] font-bold text-on-surface-variant/60 uppercase">{new Date(p.created_at).toLocaleString('pt-BR')}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className={`font-headline font-black text-lg leading-none ${p.status === 'paid' ? 'text-on-surface' : 'text-on-surface-variant/30'}`}>R$ {Number(p.amount).toFixed(2)}</p>
+                                            <p className="text-[8px] font-black uppercase tracking-tighter mt-1 opacity-40">{p.external_id ? `ID: ${p.external_id.slice(0, 8)}...` : 'Sem ID MP'}</p>
+                                        </div>
+                                    </div>
+                                )) : (
+                                    <div className="py-20 text-center opacity-30 italic text-xs font-bold uppercase tracking-widest">Nenhuma transação registrada.</div>
+                                )}
                             </div>
                         </div>
-                      )) : (
-                        <div className="py-10 text-center opacity-30 italic text-xs font-bold uppercase tracking-widest">Nenhuma oferta criada</div>
-                      )}
-                   </section>
-                </div>
-              )
+                    )}
+                </>
             )}
           </div>
         </main>

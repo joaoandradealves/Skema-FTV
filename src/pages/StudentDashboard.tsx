@@ -48,8 +48,7 @@ export default function StudentDashboard() {
   // Payment Feedback State
   const [paymentStatus, setPaymentStatus] = useState<'success' | 'failure' | 'pending' | null>(null);
 
-  useEffect(() => {
-    async function fetchData() {
+  const fetchData = React.useCallback(async () => {
       try {
         setLoading(true);
         const { data: { user } } = await supabase.auth.getUser();
@@ -174,14 +173,16 @@ export default function StudentDashboard() {
             setNextActivity(null);
         }
 
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
+    } catch (error: any) {
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
+  }, [navigate, selectedDate]);
+
+  useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   // Marketing Logic: Show once per day
   useEffect(() => {
@@ -452,7 +453,7 @@ export default function StudentDashboard() {
 
         if (waitlistError) throw waitlistError;
         alert('Você entrou na lista de espera!');
-        window.location.reload();
+        fetchData();
         return;
       }
 
@@ -530,7 +531,7 @@ export default function StudentDashboard() {
       }
 
       alert('Check-in realizado!');
-      window.location.reload();
+      fetchData();
     } catch (error: any) {
       alert(error.message);
     } finally {
@@ -669,7 +670,7 @@ export default function StudentDashboard() {
         }
       }
 
-      window.location.reload();
+      fetchData();
     } catch (error: any) {
       alert('Erro ao cancelar: ' + error.message);
     } finally {
@@ -1041,7 +1042,7 @@ export default function StudentDashboard() {
                                 ))}
                             </div>
 
-                            {profile.id === selectedRental.student_id && (
+                            {selectedRental.status === 'aprovado' ? (
                                 <div className="space-y-3 pt-4 border-t border-surface-container/20">
                                     <div className="relative">
                                         <input 
@@ -1066,6 +1067,11 @@ export default function StudentDashboard() {
                                         </AnimatePresence>
                                     </div>
                                     <p className="text-[10px] font-bold text-on-surface-variant/40 italic px-2">Dica: Adicione parceiros para sincronizar os pontos!</p>
+                                </div>
+                            ) : (
+                                <div className="p-6 bg-surface-container/50 rounded-2xl border border-dashed border-primary-container/10 text-center space-y-2">
+                                    <span className="material-symbols-outlined text-secondary opacity-30 text-3xl">groups</span>
+                                    <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest leading-tight">Adição de parceiros disponível <br/>após a confirmação do pagamento.</p>
                                 </div>
                             )}
 
