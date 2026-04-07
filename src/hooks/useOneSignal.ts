@@ -16,11 +16,16 @@ export function useOneSignal(userId: string | undefined) {
       try {
         const hasPermission = OneSignal.Notifications.permission;
         const isPushEnabled = await OneSignal.User.PushSubscription.optedIn;
+        const pushId = await OneSignal.User.PushSubscription.id;
         
         if (showDebug) {
-            alert(`[DIAGNÓSTICO SKEMA]\nStatus Nativo: ${nativePermission}\nOneSignal Permissão: ${hasPermission}\nOneSignal Inscrito: ${isPushEnabled}`);
+            alert(`[DIAGNÓSTICO SKEMA]\nStatus Nativo: ${nativePermission}\nOneSignal Permissão: ${hasPermission}\nInscrito: ${isPushEnabled}\nID: ${pushId ? 'Sincronizado' : 'Faltando'}`);
         }
         
+        if (hasPermission === true && isPushEnabled === true && pushId && userId) {
+            await syncPlayerId(pushId);
+        }
+
         setIsSubscribed(hasPermission === true && isPushEnabled === true);
         return hasPermission === true && isPushEnabled === true;
       } catch (e) {
@@ -29,6 +34,15 @@ export function useOneSignal(userId: string | undefined) {
       }
     }
     return false;
+  };
+
+  const syncPlayerId = async (playerId: string) => {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ onesignal_id: playerId })
+      .eq('id', userId);
+    if (error) console.error('[ONESIGNAL SYNC ERROR]', error);
+    else console.log('[ONESIGNAL SYNC SUCCESS]', playerId);
   };
 
   useEffect(() => {
@@ -54,24 +68,12 @@ export function useOneSignal(userId: string | undefined) {
         await updateSubscriptionStatus();
 
         OneSignal.Notifications.addEventListener('permissionChange', async (granted: boolean) => {
-          const active = await updateSubscriptionStatus();
-          if (active) {
-            const pushId = await OneSignal.User.PushSubscription.id;
-            if (pushId) await syncPlayerId(pushId);
-          }
+          await updateSubscriptionStatus();
         });
 
       } catch (err) {
         console.error('[ONESIGNAL ERROR]', err);
       }
-    };
-
-    const syncPlayerId = async (playerId: string) => {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ onesignal_id: playerId })
-        .eq('id', userId);
-      if (error) console.error('[ONESIGNAL SYNC ERROR]', error);
     };
 
     setupOneSignal();
