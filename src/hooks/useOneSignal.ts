@@ -8,13 +8,19 @@ export function useOneSignal(userId: string | undefined) {
 
   const updateSubscriptionStatus = async (showDebug = false) => {
     const OneSignal = (window as any).OneSignal;
+    const nativePermission = (window as any).Notification?.permission;
+    
     if (showDebug) console.log('[DEBUG] OneSignal status check initiated');
     
     if (OneSignal && OneSignal.Notifications && OneSignal.User) {
       try {
         const hasPermission = OneSignal.Notifications.permission;
         const isPushEnabled = await OneSignal.User.PushSubscription.optedIn;
-        if (showDebug) alert(`[DEBUG STATUS]\nPermissão: ${hasPermission}\nInscrito: ${isPushEnabled}`);
+        
+        if (showDebug) {
+            alert(`[DIAGNÓSTICO SKEMA]\nStatus Nativo: ${nativePermission}\nOneSignal Permissão: ${hasPermission}\nOneSignal Inscrito: ${isPushEnabled}`);
+        }
+        
         setIsSubscribed(hasPermission === true && isPushEnabled === true);
         return hasPermission === true && isPushEnabled === true;
       } catch (e) {
@@ -22,7 +28,6 @@ export function useOneSignal(userId: string | undefined) {
         return false;
       }
     }
-    if (showDebug) alert('[DEBUG ERR] SDK OneSignal não mapeado no window');
     return false;
   };
 
@@ -86,9 +91,15 @@ export function useOneSignal(userId: string | undefined) {
     }
 
     try {
+      const nativePermission = (window as any).Notification?.permission;
+      if (nativePermission === 'denied') {
+          alert('As notificações foram BLOQUEADAS no seu iPhone.\n\nPara ativar:\n1. Vá em Ajustes > Safari (ou o app Skema)\n2. Procure por Notificações\n3. Ative as permissões.');
+          return;
+      }
+
       // Criar um timeout para não travar o carregamento para sempre
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('TIMEOUT_EXCEEDED')), 10000)
+        setTimeout(() => reject(new Error('TIMEOUT_EXCEEDED')), 8000)
       );
 
       // Iniciar a solicitação de permissão
@@ -100,7 +111,10 @@ export function useOneSignal(userId: string | undefined) {
       await updateSubscriptionStatus(true);
     } catch (err: any) {
       if (err.message === 'TIMEOUT_EXCEEDED') {
-        alert('A solicitação demorou muito. Verifique se a janelinha de permissão não está escondida ou bloqueada nas configurações.');
+        const status = await updateSubscriptionStatus(true);
+        if (!status) {
+           alert('O Safari não respondeu. Tente desinstalar o ícone da tela de início e adicionar novamente para resetar as permissões.');
+        }
       } else {
         alert('Ocorreu um erro ao ativar: ' + err.message);
       }
