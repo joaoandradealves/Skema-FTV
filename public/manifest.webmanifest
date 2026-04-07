@@ -1,0 +1,27 @@
+{
+  "name": "Skema Beach Club",
+  "short_name": "Skema",
+  "description": "App oficial do Skema Beach Club para agendamentos e notícias.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#006971",
+  "theme_color": "#006971",
+  "icons": [
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/mermaid-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/mermaid-logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

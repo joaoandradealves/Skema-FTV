@@ -5,21 +5,22 @@ export function useOneSignal(userId: string | undefined) {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  // Estados de Diagnóstico
+  const [playerId, setPlayerId] = useState<string | null>(null);
+  const [debugStatus, setDebugStatus] = useState<string>('Iniciando...');
 
   const updateSubscriptionStatus = async (showDebug = false) => {
     const OneSignal = (window as any).OneSignal;
     const nativePermission = (window as any).Notification?.permission;
-    
-    if (showDebug) console.log('[DEBUG] OneSignal status check initiated');
     
     if (OneSignal && OneSignal.Notifications && OneSignal.User) {
       try {
         const hasPermission = OneSignal.Notifications.permission;
         let isPushEnabled = await OneSignal.User.PushSubscription.optedIn;
         
-        // FORÇAR OPT-IN: Se tem permissão mas não está inscrito, tenta forçar
         if (hasPermission === true && isPushEnabled === false) {
             try {
+                setDebugStatus('Forçando Opt-In...');
                 await OneSignal.User.PushSubscription.optIn();
                 isPushEnabled = await OneSignal.User.PushSubscription.optedIn;
             } catch (optErr) {
@@ -28,9 +29,13 @@ export function useOneSignal(userId: string | undefined) {
         }
 
         const pushId = await OneSignal.User.PushSubscription.id;
+        setPlayerId(pushId || null);
         
+        const statusMsg = `Nativo: ${nativePermission} | SDK: ${hasPermission ? 'Permitido' : 'Negado'} | Inscrito: ${isPushEnabled ? 'Sim' : 'Não'}`;
+        setDebugStatus(statusMsg);
+
         if (showDebug) {
-            alert(`[DIAGNÓSTICO SKEMA]\nStatus Nativo: ${nativePermission}\nOneSignal Permissão: ${hasPermission}\nInscrito: ${isPushEnabled}\nID: ${pushId ? 'Sincronizado' : 'Faltando'}`);
+            alert(`[DIAGNÓSTICO SKEMA]\n${statusMsg}\nID: ${pushId ? 'Sincronizado' : 'Faltando'}`);
         }
         
         if (hasPermission === true && isPushEnabled === true && pushId && userId) {
@@ -40,10 +45,11 @@ export function useOneSignal(userId: string | undefined) {
         setIsSubscribed(hasPermission === true && isPushEnabled === true);
         return hasPermission === true && isPushEnabled === true;
       } catch (e) {
-        if (showDebug) alert('[DEBUG ERR] Falha ao ler status: ' + e);
+        setDebugStatus('Erro no status: ' + e);
         return false;
       }
     }
+    setDebugStatus('OneSignal não carregou...');
     return false;
   };
 
@@ -76,6 +82,7 @@ export function useOneSignal(userId: string | undefined) {
       }
 
       try {
+        setDebugStatus('Configurando SDK...');
         await updateSubscriptionStatus();
 
         OneSignal.Notifications.addEventListener('permissionChange', async (granted: boolean) => {
@@ -83,6 +90,7 @@ export function useOneSignal(userId: string | undefined) {
         });
 
       } catch (err) {
+        setDebugStatus('Erro no setup: ' + err);
         console.error('[ONESIGNAL ERROR]', err);
       }
     };
@@ -105,30 +113,28 @@ export function useOneSignal(userId: string | undefined) {
 
     // GESTO DO USUÁRIO: Disparar IMEDIATAMENTE
     try {
+      setDebugStatus('Pedindo permissão...');
       console.log('[DEBUG] Disparando requestPermission...');
       
-      // Tentativa 1: OneSignal Oficial
       const promise = OneSignal.Notifications.requestPermission();
       
-      // Tentativa 2: Fallback Nativo Síncrono (caso o OneSignal demore a reagir)
       if ((window as any).Notification && (window as any).Notification.permission === 'default') {
           (window as any).Notification.requestPermission().catch(() => {});
       }
 
       await promise;
       
-      // Pequeno "empurrão" para o estado atualizar mais rápido no iOS
       for (let i = 0; i < 3; i++) {
         const active = await updateSubscriptionStatus(i === 0);
         if (active) break;
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
     } catch (err: any) {
+      setDebugStatus('Erro no prompt: ' + err);
       console.error('[PROMPT ERROR]', err);
-      // Silencioso aqui para não atrapalhar o fluxo principal caso o usuário cancele
       await updateSubscriptionStatus();
     }
   };
 
-  return { isSubscribed, promptSubscription, isIOS, isStandalone };
+  return { isSubscribed, promptSubscription, isIOS, isStandalone, playerId, debugStatus };
 }

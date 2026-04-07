@@ -24,7 +24,14 @@ export default function StudentDashboard() {
   const [dayClasses, setDayClasses] = useState<any[]>([]);
   const [bookingLoading, setBookingLoading] = useState<string | null>(null);
   const [loyaltyPoints, setLoyaltyPoints] = useState<number>(0);
-  const { isSubscribed, promptSubscription, isIOS, isStandalone } = useOneSignal(profile?.id);
+  const { 
+    isSubscribed, 
+    promptSubscription, 
+    isIOS, 
+    isStandalone,
+    playerId,
+    debugStatus 
+  } = useOneSignal(profile?.id);
   const [isLoadingPush, setIsLoadingPush] = useState(false);
 
   // Roster State
@@ -750,6 +757,19 @@ export default function StudentDashboard() {
                   >
                       {isLoadingPush ? 'CARREGANDO...' : 'ATIVAR'}
                   </button>
+
+                  {/* PAINEL DE DIAGNÓSTICO TÉCNICO (TEMPORÁRIO) */}
+                  <div className="absolute left-0 right-0 -bottom-24 p-3 bg-black/90 rounded-2xl border border-white/10 font-mono text-[9px] text-cyan-400 shadow-2xl z-50">
+                    <div className="flex items-center justify-between mb-1 border-b border-white/10 pb-1">
+                      <span className="font-bold uppercase tracking-wider text-white/50">RAIO-X TÉCNICO</span>
+                      <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
+                    </div>
+                    <div className="space-y-0.5">
+                      <p><span className="text-white/40">STATUS:</span> {debugStatus}</p>
+                      <p><span className="text-white/40">PUSH ID:</span> <span className="break-all">{playerId || 'NULO'}</span></p>
+                      <p><span className="text-white/40">AMBIENTE:</span> {isStandalone ? 'PWA (CORRETO)' : 'NAVEGADOR (RESTRITO)'}</p>
+                    </div>
+                  </div>
               </motion.div>
           )}
 
