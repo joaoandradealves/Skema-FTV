@@ -6,6 +6,19 @@ export function useOneSignal(userId: string | undefined) {
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
 
+  // Helper to get current status
+  const updateSubscriptionStatus = async () => {
+    const OneSignal = (window as any).OneSignal;
+    if (OneSignal && OneSignal.Notifications && OneSignal.User) {
+      const hasPermission = OneSignal.Notifications.permission;
+      const isPushEnabled = await OneSignal.User.PushSubscription.optedIn;
+      console.log('[ONESIGNAL] Status - Permission:', hasPermission, 'OptedIn:', isPushEnabled);
+      setIsSubscribed(hasPermission === true && isPushEnabled === true);
+      return hasPermission === true && isPushEnabled === true;
+    }
+    return false;
+  };
+
   useEffect(() => {
     const checkPlatform = () => {
       const is_ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
@@ -20,18 +33,18 @@ export function useOneSignal(userId: string | undefined) {
     const setupOneSignal = async () => {
       const OneSignal = (window as any).OneSignal;
       
-      if (!OneSignal || !OneSignal.Notifications) {
+      if (!OneSignal || !OneSignal.Notifications || !OneSignal.User) {
         setTimeout(setupOneSignal, 1000);
         return;
       }
 
       try {
-        const permission = OneSignal.Notifications.permission;
-        setIsSubscribed(permission === true || permission === 'granted');
+        await updateSubscriptionStatus();
 
         OneSignal.Notifications.addEventListener('permissionChange', async (granted: boolean) => {
-          setIsSubscribed(granted);
-          if (granted) {
+          console.log('[ONESIGNAL] Permission changed:', granted);
+          const active = await updateSubscriptionStatus();
+          if (active) {
             const pushId = await OneSignal.User.PushSubscription.id;
             if (pushId) await syncPlayerId(pushId);
           }
@@ -67,7 +80,10 @@ export function useOneSignal(userId: string | undefined) {
     if (OneSignal && OneSignal.Notifications) {
       try {
         await OneSignal.Notifications.requestPermission();
+        // Force state update after prompt closes
+        await updateSubscriptionStatus();
       } catch (err) {
+        console.error('[PROMPT ERROR]', err);
         alert('Por favor, ative as notificações nas configurações do seu celular/navegador.');
       }
     }
