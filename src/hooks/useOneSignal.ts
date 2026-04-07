@@ -103,7 +103,13 @@ export function useOneSignal(userId: string | undefined) {
       }
 
       await promise;
-      await updateSubscriptionStatus(true);
+      
+      // Pequeno "empurrão" para o estado atualizar mais rápido no iOS
+      for (let i = 0; i < 3; i++) {
+        const active = await updateSubscriptionStatus(i === 0);
+        if (active) break;
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
     } catch (err: any) {
       console.error('[PROMPT ERROR]', err);
       // Silencioso aqui para não atrapalhar o fluxo principal caso o usuário cancele
