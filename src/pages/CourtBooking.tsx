@@ -217,7 +217,11 @@ export default function CourtBooking() {
         }
       });
 
-      if (checkoutError) throw checkoutError;
+      if (checkoutError) {
+          console.error('Erro no Checkout MP:', checkoutError);
+          alert(`Erro no Checkout (Supabase): ${checkoutError.message} - ${checkoutError.name}`);
+          return;
+      }
 
       // Notify Admin
       notifyAdmin('court_rental', {
