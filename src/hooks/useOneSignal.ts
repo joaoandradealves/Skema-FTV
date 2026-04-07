@@ -6,16 +6,23 @@ export function useOneSignal(userId: string | undefined) {
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
 
-  // Helper to get current status
-  const updateSubscriptionStatus = async () => {
+  const updateSubscriptionStatus = async (showDebug = false) => {
     const OneSignal = (window as any).OneSignal;
+    if (showDebug) console.log('[DEBUG] OneSignal status check initiated');
+    
     if (OneSignal && OneSignal.Notifications && OneSignal.User) {
-      const hasPermission = OneSignal.Notifications.permission;
-      const isPushEnabled = await OneSignal.User.PushSubscription.optedIn;
-      console.log('[ONESIGNAL] Status - Permission:', hasPermission, 'OptedIn:', isPushEnabled);
-      setIsSubscribed(hasPermission === true && isPushEnabled === true);
-      return hasPermission === true && isPushEnabled === true;
+      try {
+        const hasPermission = OneSignal.Notifications.permission;
+        const isPushEnabled = await OneSignal.User.PushSubscription.optedIn;
+        if (showDebug) alert(`[DEBUG STATUS]\nPermissão: ${hasPermission}\nInscrito: ${isPushEnabled}`);
+        setIsSubscribed(hasPermission === true && isPushEnabled === true);
+        return hasPermission === true && isPushEnabled === true;
+      } catch (e) {
+        if (showDebug) alert('[DEBUG ERR] Falha ao ler status: ' + e);
+        return false;
+      }
     }
+    if (showDebug) alert('[DEBUG ERR] SDK OneSignal não mapeado no window');
     return false;
   };
 
@@ -42,16 +49,12 @@ export function useOneSignal(userId: string | undefined) {
         await updateSubscriptionStatus();
 
         OneSignal.Notifications.addEventListener('permissionChange', async (granted: boolean) => {
-          console.log('[ONESIGNAL] Permission changed:', granted);
           const active = await updateSubscriptionStatus();
           if (active) {
             const pushId = await OneSignal.User.PushSubscription.id;
             if (pushId) await syncPlayerId(pushId);
           }
         });
-
-        const pushId = await OneSignal.User.PushSubscription.id;
-        if (pushId) await syncPlayerId(pushId);
 
       } catch (err) {
         console.error('[ONESIGNAL ERROR]', err);
@@ -73,19 +76,35 @@ export function useOneSignal(userId: string | undefined) {
     const OneSignal = (window as any).OneSignal;
 
     if (isIOS && !isStandalone) {
-      alert('No iPhone, você precisa adicionar este site à sua TELA DE INÍCIO para ativar as notificações.\n\n1. Clique no botão de Compartilhar (quadrado com seta)\n2. Role para baixo e clique em "Adicionar à Tela de Início"\n3. Abra o app por lá e clique em Ativar novamente.');
+      alert('No iPhone, as notificações só funcionam no modo "Tela de Início".\n\nAbra o app pelo ícone que você adicionou à sua tela principal e tente novamente!');
       return;
     }
 
-    if (OneSignal && OneSignal.Notifications) {
-      try {
-        await OneSignal.Notifications.requestPermission();
-        // Force state update after prompt closes
-        await updateSubscriptionStatus();
-      } catch (err) {
-        console.error('[PROMPT ERROR]', err);
-        alert('Por favor, ative as notificações nas configurações do seu celular/navegador.');
+    if (!OneSignal || !OneSignal.Notifications) {
+      alert('Aguardando inicialização das notificações... Tente novamente em 2 segundos.');
+      return;
+    }
+
+    try {
+      // Criar um timeout para não travar o carregamento para sempre
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('TIMEOUT_EXCEEDED')), 10000)
+      );
+
+      // Iniciar a solicitação de permissão
+      await Promise.race([
+          OneSignal.Notifications.requestPermission(),
+          timeoutPromise
+      ]);
+
+      await updateSubscriptionStatus(true);
+    } catch (err: any) {
+      if (err.message === 'TIMEOUT_EXCEEDED') {
+        alert('A solicitação demorou muito. Verifique se a janelinha de permissão não está escondida ou bloqueada nas configurações.');
+      } else {
+        alert('Ocorreu um erro ao ativar: ' + err.message);
       }
+      await updateSubscriptionStatus();
     }
   };
 

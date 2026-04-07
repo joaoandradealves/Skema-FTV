@@ -14,11 +14,11 @@
       OneSignalDeferred.push(async function(OneSignal) {
         await OneSignal.init({
           appId: "51486d1b-db76-4996-b5bd-1c88bcb14835",
-          safari_web_id: "web.onesignal.auto.103737cb-d76f-40e1-aaa3-66170685600c",
           notifyButton: {
             enable: false,
           },
           allowLocalhostAsSecureOrigin: true,
+          serviceWorkerPath: 'OneSignalSDKWorker.js'
         });
       });
     </script>
