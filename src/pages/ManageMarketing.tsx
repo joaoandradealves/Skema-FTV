@@ -26,6 +26,9 @@ export default function ManageMarketing() {
         button_link: '/court-booking',
         is_active: true
     });
+    const [pushTitle, setPushTitle] = useState('');
+    const [pushMessage, setPushMessage] = useState('');
+    const [sendingPush, setSendingPush] = useState(false);
 
     useEffect(() => {
         fetchMessages();
@@ -98,12 +101,67 @@ export default function ManageMarketing() {
         }
     }
 
+    async function handleSendGlobalPush() {
+        if (!pushTitle || !pushMessage) return alert('Preencha título e mensagem!');
+        if (!confirm('Deseja realmente enviar esta notificação para TODOS os alunos inscritos?')) return;
+
+        try {
+            setSendingPush(true);
+            const { notifyAdmin } = await import('../lib/notifications');
+            await notifyAdmin('marketing_push', {
+                title: pushTitle,
+                message: pushMessage
+            });
+            alert('🚀 Notificação disparada com sucesso!');
+            setPushTitle('');
+            setPushMessage('');
+        } catch (error: any) {
+            alert('Erro ao disparar push: ' + error.message);
+        } finally {
+            setSendingPush(false);
+        }
+    }
+
     return (
         <WavyBackground topHeight="25%">
             <div className="pb-32 min-h-screen font-body relative">
                 <TopAppBar title="ADMIN: MARKETING" />
 
-                <main className="mt-20 px-6 max-w-2xl mx-auto space-y-6">
+                <main className="mt-20 px-6 max-w-2xl mx-auto space-y-10">
+                    {/* Novo: Seção de Notificação Push Global */}
+                    <section className="bg-white p-8 rounded-[40px] border-2 border-primary/20 shadow-xl space-y-6 relative overflow-hidden">
+                        <div className="absolute -right-6 -top-6 opacity-10 rotate-12">
+                            <span className="material-symbols-outlined text-[100px] text-primary">send_and_archive</span>
+                        </div>
+                        <div className="relative z-10">
+                            <h3 className="font-headline font-black text-2xl text-on-surface uppercase italic tracking-tight">Disparar <span className="text-primary">Push Global</span></h3>
+                            <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest opacity-60">Envie um alerta agora para todos os alunos</p>
+                        </div>
+
+                        <div className="space-y-4 relative z-10">
+                            <input 
+                                type="text"
+                                placeholder="Título da Notificação (Ex: AULAS ABERTAS!)"
+                                className="w-full h-14 bg-surface rounded-2xl px-6 font-bold text-sm outline-none border-2 border-transparent focus:border-primary transition-all"
+                                value={pushTitle}
+                                onChange={e => setPushTitle(e.target.value.toUpperCase())}
+                            />
+                            <textarea 
+                                placeholder="Sua mensagem de marketing ou aviso geral..."
+                                className="w-full h-32 bg-surface rounded-2xl p-6 font-bold text-sm outline-none border-2 border-transparent focus:border-primary transition-all resize-none"
+                                value={pushMessage}
+                                onChange={e => setPushMessage(e.target.value)}
+                            />
+                            <button 
+                                onClick={handleSendGlobalPush}
+                                disabled={sendingPush}
+                                className="w-full h-14 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-50"
+                            >
+                                <span className="material-symbols-outlined text-sm font-black">rocket_launch</span>
+                                {sendingPush ? 'ENVIANDO...' : '🚀 DISPARAR PARA TODOS OS ALUNOS'}
+                            </button>
+                        </div>
+                    </section>
                     <header className="flex justify-between items-center text-white pb-4">
                         <div>
                             <h2 className="font-headline font-black text-2xl uppercase tracking-tight">Comunicação</h2>

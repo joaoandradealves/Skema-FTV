@@ -49,6 +49,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
+  async function sendGlobalPush(title: string, message: string) {
+    if (!oneSignalApiKey) return console.warn('[PUSH GLOBAL] Skip: API Key missing');
+    try {
+      const res = await fetch('https://onesignal.com/api/v1/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${oneSignalApiKey}`
+        },
+        body: JSON.stringify({
+          app_id: oneSignalAppId,
+          included_segments: ["Subscribed Users"],
+          headings: { en: title, pt: title },
+          contents: { en: message, pt: message },
+          url: 'https://skema-ftv.vercel.app/student-dashboard'
+        })
+      });
+      console.log('[PUSH GLOBAL] Response:', await res.json());
+    } catch (e) {
+      console.error('[PUSH GLOBAL ERROR]', e);
+    }
+  }
+
   if (!resendApiKey) {
     console.error('RESEND_API_KEY is missing');
     return res.status(500).json({ error: 'Mail service not configured' });
@@ -336,6 +359,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         await sendPush(data.onesignal_id, '🎊 Vaga Confirmada!', `Você saiu da lista de espera para ${data.class_name}!`);
       }
       break;
+
+    case 'marketing_push':
+      if (data.title && data.message) {
+        await sendGlobalPush(data.title, data.message);
+      }
+      return res.status(200).json({ success: true });
 
     default:
       return res.status(400).json({ error: 'Invalid notification type' });
