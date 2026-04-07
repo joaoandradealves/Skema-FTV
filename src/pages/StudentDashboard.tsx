@@ -25,6 +25,7 @@ export default function StudentDashboard() {
   const [bookingLoading, setBookingLoading] = useState<string | null>(null);
   const [loyaltyPoints, setLoyaltyPoints] = useState<number>(0);
   const { isSubscribed, promptSubscription, isIOS, isStandalone } = useOneSignal(profile?.id);
+  const [isLoadingPush, setIsLoadingPush] = useState(false);
 
   // Roster State
   const [roster, setRoster] = useState<{ className: string, students: any[] } | null>(null);
@@ -736,15 +737,16 @@ export default function StudentDashboard() {
                   </div>
                   <button 
                       onClick={async () => {
-                        const btn = document.getElementById('btn-push-activate');
-                        if (btn) btn.innerText = 'CARREGANDO...';
+                        setIsLoadingPush(true);
                         await promptSubscription();
-                        if (btn) btn.innerText = 'ATIVAR';
+                        // O banner sumirá sozinho quando isSubscribed mudar, 
+                        // mas caso não mude (ex: erro ou cancelamento), voltamos o estado.
+                        setIsLoadingPush(false);
                       }}
-                      id="btn-push-activate"
-                      className="px-6 py-3 bg-primary text-white text-[10px] font-black rounded-2xl whitespace-nowrap active:scale-95 transition-all shadow-lg shadow-primary/20 relative z-10 uppercase tracking-widest"
+                      disabled={isLoadingPush}
+                      className="px-6 py-3 bg-primary text-white text-[10px] font-black rounded-2xl whitespace-nowrap active:scale-95 transition-all shadow-lg shadow-primary/20 relative z-10 uppercase tracking-widest disabled:opacity-70"
                   >
-                      ATIVAR
+                      {isLoadingPush ? 'CARREGANDO...' : 'ATIVAR'}
                   </button>
               </motion.div>
           )}
