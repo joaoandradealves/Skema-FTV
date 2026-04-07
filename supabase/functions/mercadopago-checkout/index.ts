@@ -16,21 +16,22 @@ serve(async (req) => {
     
     // Auth check
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-        console.error('ERRO: Cabeçalho Authorization ausente');
-        return new Response(JSON.stringify({ error: 'Não autorizado' }), { status: 401, headers: corsHeaders })
+    const token = authHeader?.replace('Bearer ', '')
+    
+    if (!token) {
+        console.error('ERRO: Token de autorização ausente');
+        return new Response(JSON.stringify({ error: 'Sessão inválida. Por favor, saia e entre novamente no app.' }), { status: 401, headers: corsHeaders })
     }
     
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     )
 
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token)
     if (userError || !user) {
         console.error('ERRO: Falha ao obter usuário do Supabase:', userError?.message || 'Usuário nulo');
-        return new Response(JSON.stringify({ error: 'Sessão expirada' }), { status: 401, headers: corsHeaders })
+        return new Response(JSON.stringify({ error: `Sessão expirada: ${userError?.message || 'Token inválido'}` }), { status: 401, headers: corsHeaders })
     }
     
     console.log('Sucesso: Usuário autenticado:', user.email);
