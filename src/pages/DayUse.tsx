@@ -6,6 +6,7 @@ import TopAppBar from '../components/TopAppBar';
 import StudentNavbar from '../components/StudentNavbar';
 import { notifyAdmin } from '../lib/notifications';
 import CPFModal from '../components/CPFModal';
+import PaymentChoiceModal from '../components/PaymentChoiceModal';
 
 export default function DayUse() {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ export default function DayUse() {
   const [submitting, setSubmitting] = useState(false);
   const [userCPF, setUserCPF] = useState<string | null>(null);
   const [showCPFModal, setShowCPFModal] = useState(false);
+  const [showPaymentChoice, setShowPaymentChoice] = useState(false);
 
   useEffect(() => {
     fetchOffers();
@@ -60,7 +62,51 @@ export default function DayUse() {
         return;
     }
 
-    startCheckout();
+    setShowPaymentChoice(true);
+  }
+
+  async function handlePaymentMethodSelect(method: 'app' | 'local') {
+    setShowPaymentChoice(false);
+    if (method === 'app') {
+      startCheckout();
+    } else {
+      createLocalPaymentBooking();
+    }
+  }
+
+  async function createLocalPaymentBooking() {
+    try {
+      setSubmitting(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Faça login primeiro');
+
+      const offer = offers.find(o => o.id === selectedOffer);
+      
+      const { error: bookingError } = await supabase
+        .from('day_use_bookings')
+        .insert({
+          student_id: user.id,
+          offer_id: selectedOffer,
+          price: offer.price,
+          status: 'pagamento_local'
+        });
+
+      if (bookingError) throw bookingError;
+
+      // Notify Admin
+      notifyAdmin('day_use', {
+        full_name: user.user_metadata?.full_name || 'Aluno',
+        offer_date: new Date(offer.offer_date + 'T00:00:00').toLocaleDateString('pt-BR'),
+        price: offer.price,
+        payment_method: 'Bar do Clube'
+      });
+
+      alert('Solicitação realizada! Compareça ao bar do clube para efetuar o pagamento e retirar sua pulseira.');
+      navigate('/student-dashboard');
+    } catch (error: any) {
+      alert(error.message);
+      setSubmitting(false);
+    }
   }
 
   async function startCheckout() {
@@ -99,7 +145,8 @@ export default function DayUse() {
       notifyAdmin('day_use', {
         full_name: user.user_metadata?.full_name || 'Aluno',
         offer_date: new Date(offer.offer_date + 'T00:00:00').toLocaleDateString('pt-BR'),
-        price: offer.price
+        price: offer.price,
+        payment_method: 'App (Mercado Pago)'
       });
 
       // 3. Redirecionar para o Mercado Pago
@@ -113,6 +160,8 @@ export default function DayUse() {
       setSubmitting(false);
     }
   }
+
+  const selectedOfferData = offers.find(o => o.id === selectedOffer);
 
   return (
     <WavyBackground topHeight="25%">
@@ -215,8 +264,15 @@ export default function DayUse() {
             onSuccess={(cpf) => {
                 setUserCPF(cpf);
                 setShowCPFModal(false);
-                startCheckout();
+                setShowPaymentChoice(true);
             }}
+        />
+
+        <PaymentChoiceModal 
+            isOpen={showPaymentChoice}
+            onClose={() => setShowPaymentChoice(false)}
+            onSelect={handlePaymentMethodSelect}
+            price={selectedOfferData?.price || 0}
         />
 
         <StudentNavbar activePage="home" />

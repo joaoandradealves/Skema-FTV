@@ -1,5 +1,7 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 
+export type NotificationType = 'registration' | 'plan_request' | 'day_use' | 'court_rental' | 'plan_approved' | 'booking_confirmed' | 'teacher_new_student' | 'booking_cancelled' | 'teacher_booking_cancelled' | 'waitlist_promoted' | 'rental_approved' | 'day_use_approved' | 'marketing_push' | 'day_use_created';
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS configuration for local development and production
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -96,7 +98,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     </div>
   `;
 
-  switch (type) {
+  switch (type as NotificationType) {
     case 'registration':
       subject = `[SKEMA] 🚀 Novo Cadastro: ${data.full_name}`;
       html = `
@@ -360,6 +362,47 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       break;
 
+    case 'day_use_created':
+      subject = `[SKEMA] ☀️ Novo Day Use Disponível: ${data.date}!`;
+      html = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border-radius: 20px; border: 1px solid #eee; overflow: hidden;">
+          <div style="background-color: #006971; padding: 40px 20px; text-align: center; background-image: linear-gradient(135deg, #006971 0%, #004d54 100%);">
+            <h1 style="color: #ffffff; margin: 0; font-family: sans-serif; font-size: 32px; font-weight: 900; letter-spacing: -1px;">BORA PRA AREIA? 🏐</h1>
+          </div>
+          <div style="padding: 40px 30px; text-align: center;">
+            <h2 style="color: #333; font-size: 24px; margin-bottom: 10px;">Novo Day Use Criado!</h2>
+            <p style="font-size: 16px; color: #666; line-height: 1.6;">Acabamos de abrir uma nova oportunidade de Day Use no Skema Beach Club. Venha jogar e curtir com a gente!</p>
+            
+            <div style="margin: 30px 0; background: #f9f9f9; border-radius: 24px; padding: 30px; border: 1px solid #eee;">
+              <p style="margin: 0 0 15px 0; color: #888; text-transform: uppercase; font-weight: bold; font-size: 12px; tracking: 2px;">Detalhes do Evento</p>
+              <h3 style="margin: 0; color: #006971; font-size: 28px; font-weight: 900;">${data.date}</h3>
+              <p style="margin: 5px 0; color: #444; font-size: 18px; font-weight: bold;">${data.start_time} às ${data.end_time}</p>
+              <div style="margin-top: 15px; display: inline-block; background: #EF7651; color: white; padding: 8px 16px; border-radius: 100px; font-weight: bold; font-size: 14px;">
+                R$ ${data.price},00
+              </div>
+            </div>
+
+            <p style="color: #888; font-size: 13px; margin-bottom: 30px; line-height: 1.5;">
+              Lembrando que no Day Use o rodízio é livre e você joga com toda a galera! <br/>
+              <strong>Vagas limitadas!</strong>
+            </p>
+
+            <a href="https://skema-ftv.vercel.app/day-use" 
+               style="background: #006971; color: white; padding: 20px 40px; text-decoration: none; border-radius: 18px; font-weight: bold; display: inline-block; font-size: 16px; box-shadow: 0 10px 20px rgba(0,105,113,0.2);">
+               GARANTIR MINHA VAGA
+            </a>
+          </div>
+          <div style="background: #fcfcfc; padding: 30px; text-align: center; border-top: 1px solid #eee;">
+            <p style="margin: 0; color: #999; font-size: 12px;">Dúvidas? Entre em contato com a gente pelo WhatsApp.</p>
+          </div>
+          ${footer}
+        </div>
+      `;
+      if (!data.is_test) {
+        await sendGlobalPush('☀️ Novo Day Use Disponível!', `Bora jogar no dia ${data.date}? Garanta sua vaga agora!`);
+      }
+      break;
+
     case 'marketing_push':
       if (data.title && data.message) {
         await sendGlobalPush(data.title, data.message);
@@ -370,7 +413,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Invalid notification type' });
   }
 
-  const recipient = (type === 'teacher_new_student' || type === 'teacher_booking_cancelled') ? data.teacher_email : (data.email || adminEmail);
+  const recipient = (type === 'teacher_new_student' || type === 'teacher_booking_cancelled') 
+    ? data.teacher_email 
+    : (type === 'day_use_created' ? data.emails : (data.email || adminEmail));
 
   try {
     const response = await fetch('https://api.resend.com/emails', {

@@ -52,6 +52,7 @@ export default function ManageLeisure() {
     price: 30,
     max_spots: 10
   });
+  const [testMode, setTestMode] = useState(true); // Default como true para segurança
 
   useEffect(() => {
     fetchData();
@@ -131,12 +132,36 @@ export default function ManageLeisure() {
   async function handleCreateOffer() {
     try {
       setSubmitting(true);
-      const { error } = await supabase.from('day_use_offers').insert([newOffer]);
+      const { data: offer, error } = await supabase.from('day_use_offers').insert([newOffer]).select().single();
       if (error) throw error;
-      setSuccessMsg('Oferta de Day Use criada!');
+
+      // Determinar destinatários
+      let emails: string[] = [];
+      if (testMode) {
+        // No modo de teste, envia apenas para o admin
+        emails = ['joao.andrade.alves@gmail.com', 'joao.andrade.alves12@gmail.com'];
+      } else {
+        // No modo real, busca todos os alunos
+        const { data: profiles } = await supabase.from('profiles').select('email').eq('role', 'student');
+        emails = (profiles || []).map(p => p.email).filter(Boolean);
+      }
+      
+      if (emails.length > 0) {
+        const { notifyAdmin } = await import('../lib/notifications');
+        await notifyAdmin('day_use_created', {
+          date: new Date(newOffer.offer_date + 'T00:00:00').toLocaleDateString('pt-BR'),
+          start_time: newOffer.start_time,
+          end_time: newOffer.end_time,
+          price: newOffer.price,
+          emails: emails,
+          is_test: testMode
+        });
+      }
+
+      setSuccessMsg(testMode ? 'Oferta criada (MODO TESTE - Notificação apenas para Admin)' : 'Oferta de Day Use criada e alunos notificados!');
       setActiveTab('create-offer');
       fetchData();
-      setTimeout(() => setSuccessMsg(''), 3000);
+      setTimeout(() => setSuccessMsg(''), 5000);
     } catch (error: any) {
       alert(error.message);
     } finally {
@@ -473,11 +498,22 @@ export default function ManageLeisure() {
                                         </div>
                                         <div className="bg-surface-container-highest px-4 py-2 rounded-2xl text-secondary font-black text-lg">R$ {d.price}</div>
                                     </div>
-                                    <div className="flex gap-3 pt-2">
+                                    <div className="flex flex-col gap-3 pt-2">
                                         {d.status === 'aprovado' ? (
                                             <div className="w-full bg-primary/10 text-primary py-4 rounded-2xl font-headline font-black text-xs uppercase tracking-widest text-center border-2 border-primary/20">
                                                 CONFIRMADO
                                             </div>
+                                        ) : d.status === 'pagamento_local' ? (
+                                            <>
+                                                <div className="w-full bg-amber-50 text-amber-700 py-3 rounded-2xl font-headline font-black text-[10px] uppercase tracking-widest text-center border-2 border-amber-100 flex items-center justify-center gap-2">
+                                                    <span className="material-symbols-outlined text-sm">storefront</span>
+                                                    Pagar no Bar
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => handleDayUseAction(d.id, true)} className="flex-1 bg-secondary text-white py-4 rounded-2xl font-headline font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-all">Confirmar Pagamento</button>
+                                                    <button onClick={() => handleDayUseAction(d.id, false)} className="px-6 bg-surface-container-highest text-on-surface-variant rounded-2xl font-bold text-[10px] uppercase tracking-widest">Recusar</button>
+                                                </div>
+                                            </>
                                         ) : (
                                             <>
                                                 <button onClick={() => handleDayUseAction(d.id, true)} className="flex-1 bg-secondary text-white py-4 rounded-2xl font-headline font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all">Aprovar Day Use</button>
@@ -516,6 +552,19 @@ export default function ManageLeisure() {
                                     <div>
                                         <label className="text-[10px] font-black text-on-surface-variant uppercase ml-2">Vagas</label>
                                         <input type="number" value={newOffer.max_spots} onChange={(e) => setNewOffer({...newOffer, max_spots: Number(e.target.value)})} className="w-full bg-surface-container border-none rounded-xl font-bold text-secondary" />
+                                    </div>
+                                    <div className="col-span-2 flex items-center gap-3 p-4 bg-secondary/5 rounded-2xl border-2 border-dashed border-secondary/20">
+                                        <input 
+                                            type="checkbox" 
+                                            id="testMode" 
+                                            checked={testMode} 
+                                            onChange={(e) => setTestMode(e.target.checked)}
+                                            className="w-5 h-5 rounded border-secondary text-secondary focus:ring-secondary"
+                                        />
+                                        <label htmlFor="testMode" className="text-xs font-bold text-secondary cursor-pointer flex flex-col">
+                                            MODO DE TESTE ATIVADO
+                                            <span className="text-[9px] opacity-60 font-medium normal-case">Ao criar, a notificação será enviada apenas para o seu e-mail.</span>
+                                        </label>
                                     </div>
                                 </div>
                                 <button disabled={submitting} onClick={handleCreateOffer} className="w-full bg-secondary text-white py-4 rounded-2xl font-headline font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all">
