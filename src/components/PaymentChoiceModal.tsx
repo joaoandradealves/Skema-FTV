@@ -54,8 +54,8 @@ export default function PaymentChoiceModal({ isOpen, onClose, onSelect, price }:
                                 <div className="relative z-10 flex items-center justify-between">
                                     <div className="space-y-1">
                                         <p className="text-[10px] font-black text-secondary uppercase tracking-[0.2em]">Pagar agora</p>
-                                        <h4 className="font-headline font-black text-lg leading-tight uppercase italic">Pelo App</h4>
-                                        <p className="text-[9px] font-medium opacity-60 normal-case">Liberação imediata e pontos automáticos.</p>
+                                        <h4 className="font-headline font-black text-lg leading-tight uppercase italic">Pagar pelo App</h4>
+                                        <p className="text-[9px] font-medium opacity-60 normal-case">Pague agora e apenas retire sua pulseira no bar ao chegar.</p>
                                     </div>
                                     <span className="material-symbols-outlined text-secondary text-2xl font-black">bolt</span>
                                 </div>
@@ -68,8 +68,8 @@ export default function PaymentChoiceModal({ isOpen, onClose, onSelect, price }:
                                 <div className="relative z-10 flex items-center justify-between">
                                     <div className="space-y-1">
                                         <p className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-[0.2em]">Pagar depois</p>
-                                        <h4 className="font-headline font-black text-lg text-on-surface leading-tight uppercase italic">No Local (Bar)</h4>
-                                        <p className="text-[9px] font-medium text-on-surface-variant/60 normal-case">Pague ao chegar para retirar sua pulseira.</p>
+                                        <h4 className="font-headline font-black text-lg text-on-surface leading-tight uppercase italic">Pagar no Local (Bar)</h4>
+                                        <p className="text-[9px] font-medium text-on-surface-variant/60 normal-case">Pague diretamente no bar para retirar sua pulseira.</p>
                                     </div>
                                     <span className="material-symbols-outlined text-on-surface-variant/30 text-2xl">storefront</span>
                                 </div>
@@ -79,10 +79,11 @@ export default function PaymentChoiceModal({ isOpen, onClose, onSelect, price }:
                         <div className="bg-amber-50 border-2 border-amber-100 p-4 rounded-[24px] space-y-2">
                             <div className="flex items-center gap-2 text-amber-700">
                                 <span className="material-symbols-outlined text-lg font-black">warning</span>
-                                <p className="text-[10px] font-black uppercase tracking-widest">Aviso Obrigatório</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest">Regra de Segurança</p>
                             </div>
                             <p className="text-[11px] text-amber-900/70 font-bold leading-tight">
-                                É obrigatória a retirada da pulseira no bar do clube antes de entrar na quadra. A prática de Day Use sem pulseira é proibida e sujeita a regras da quadra.
+                                A retirada da pulseira no bar é obrigatória. <br/><br/>
+                                <span className="text-secondary">IMPORTANTE:</span> Caso selecione "Pagar no Local" e não retire a pulseira por **2 vezes**, seu acesso será **bloqueado por 2 semanas**.
                             </p>
                         </div>
 
